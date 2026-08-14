@@ -1,0 +1,18 @@
+services:
+  wa-bot:
+    build: .
+    container_name: wa-bot
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "3000:3000"
+
+    networks:
+      - server
+
+networks:
+  server:
+    external: true
