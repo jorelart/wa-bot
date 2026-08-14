@@ -1,6 +1,50 @@
 import { handleCommand } from '../commands/index.js';
 import { sendMessage } from '../evolution/client.js';
 
+function extractMessageText(data) {
+  const message = data?.message;
+
+  if (!message) {
+    return null;
+  }
+
+  // Pesan teks biasa
+  if (typeof message.conversation === 'string') {
+    return message.conversation;
+  }
+
+  // Pesan teks dengan extended message
+  if (typeof message.extendedTextMessage?.text === 'string') {
+    return message.extendedTextMessage.text;
+  }
+
+  // Caption pada image/video/document
+  if (typeof message.imageMessage?.caption === 'string') {
+    return message.imageMessage.caption;
+  }
+
+  if (typeof message.videoMessage?.caption === 'string') {
+    return message.videoMessage.caption;
+  }
+
+  if (typeof message.documentMessage?.caption === 'string') {
+    return message.documentMessage.caption;
+  }
+
+  return null;
+}
+
+async function sendUnknownCommand(chatId, command) {
+  const message = [
+    '❌ *Unknown command*',
+    '',
+    `Command \`!${command}\` tidak ditemukan.`,
+    '',
+    'Ketik *!help* untuk melihat daftar command.',
+  ].join('\n');
+
+  await sendMessage(chatId, message);
+}
 
 export async function handleWebhook(payload) {
   if (payload?.event !== 'messages.upsert') {
@@ -20,13 +64,13 @@ export async function handleWebhook(payload) {
     return;
   }
 
-  const message = data.message?.conversation;
+  const message = extractMessageText(data);
 
   if (!message) {
     return;
   }
 
-  const chatId = key.remoteJid;
+  const chatId = key?.remoteJid;
 
   if (!chatId) {
     return;
@@ -60,21 +104,22 @@ export async function handleWebhook(payload) {
     `Command: !${command} | Chat: ${chatId} | Sender: ${context.sender}`
   );
 
+  try {
     const handled = await handleCommand(command, context);
 
-  if (!handled) {
-    await sendUnknownCommand(chatId, command);
+    if (!handled) {
+      await sendUnknownCommand(chatId, command);
+    }
+  } catch (error) {
+    console.error(`Command !${command} error:`, error);
+
+    try {
+      await sendMessage(
+        chatId,
+        '❌ Terjadi kesalahan saat menjalankan command.'
+      );
+    } catch (sendError) {
+      console.error('Failed to send error message:', sendError);
+    }
   }
-}
-
-async function sendUnknownCommand(chatId, command) {
-  const message = [
-    '❌ *Unknown command*',
-    '',
-    `Command \`!${command}\` tidak ditemukan.`,
-    '',
-    'Ketik *!help* untuk melihat daftar command.',
-  ].join('\n');
-
-  await sendMessage(chatId, message);
 }
