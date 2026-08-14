@@ -47,6 +47,13 @@ export async function sendMessage(number, text, options = {}) {
           participant: key?.participant || null,
         };
       }
+      // Also include quotedMessage inside contextInfo (some providers expect this)
+      body.contextInfo = {
+        ...body.contextInfo,
+        quotedMessage: origMessage?.conversation
+          ? { conversation: origMessage.conversation, stanzaId: quotedId || null }
+          : undefined,
+      };
 
       if (options.rawContext) {
         // include raw context and expanded aliases only when explicitly requested
