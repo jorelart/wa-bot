@@ -1,7 +1,7 @@
-import { sendMessage } from '../api/evolution.js';
+import { sendReply } from '../api/evolution.js';
 import { getCommands } from './registry.js';
 
-export async function handleHelp({ chatId }) {
+export async function handleHelp({ chatId, payload }) {
   const commands = getCommands();
 
   const message = [
@@ -12,5 +12,5 @@ export async function handleHelp({ chatId }) {
     ...commands.map((command) => `📌 !${command}`),
   ].join('\n');
 
-  await sendMessage(chatId, message);
+  await sendReply(chatId, message, payload?.data);
 }

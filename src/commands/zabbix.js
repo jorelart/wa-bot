@@ -1,4 +1,4 @@
-import { sendMessage } from '../api/evolution.js';
+import { sendReply } from '../api/evolution.js';
 import { getProblems, searchProblems } from '../api/zabbix/problem.js';
 import { getProblemDetail } from '../api/zabbix/problem-details.js';
 
@@ -7,14 +7,14 @@ import {
   formatProblemDetail,
 } from '../formatters/zabbix.js';
 
-export async function handleZabbix({ chatId, args }) {
+export async function handleZabbix({ chatId, args, payload }) {
   const subcommand = args[0]?.toLowerCase();
 
     if (subcommand === 'search') {
   const keyword = args.slice(1).join(' ').trim();
 
   if (!keyword) {
-    await sendMessage(
+    await sendReply(
       chatId,
       [
         '🔎 *ZABBIX SEARCH*',
@@ -27,19 +27,21 @@ export async function handleZabbix({ chatId, args }) {
         '`!zabbix search timeplus`',
         '`!zabbix search XGigabitEthernet`',
       ].join('\n')
+      ].join('\n'),
+      payload?.data
     );
 
     return;
   }
 
-  await handleSearch(chatId, keyword);
+  await handleSearch(chatId, keyword, payload);
   return;
     }
     
   // !zabbix
   // !zabbix problems
   if (!subcommand || subcommand === 'problems') {
-    await handleProblems(chatId);
+    await handleProblems(chatId, payload);
     return;
   }
 
@@ -48,7 +50,7 @@ export async function handleZabbix({ chatId, args }) {
     const eventid = args[1];
 
     if (!eventid) {
-      await sendMessage(
+      await sendReply(
         chatId,
         [
           '📊 *ZABBIX*',
@@ -58,17 +60,18 @@ export async function handleZabbix({ chatId, args }) {
           '',
           'Contoh:',
           '`!zabbix problem 1054973`',
-        ].join('\n')
+        ].join('\n'),
+        payload?.data
       );
 
       return;
     }
 
-    await handleProblemDetail(chatId, eventid);
+    await handleProblemDetail(chatId, eventid, payload);
     return;
   }
 
-  await sendMessage(
+  await sendReply(
     chatId,
     [
       '📊 *ZABBIX*',
@@ -78,81 +81,78 @@ export async function handleZabbix({ chatId, args }) {
       '• `!zabbix`',
       '• `!zabbix problems`',
       '• `!zabbix problem <eventid>`',
-    ].join('\n')
+    ].join('\n'),
+    payload?.data
   );
 }
 
-async function handleProblems(chatId) {
+async function handleProblems(chatId, payload) {
   try {
     const problems = await getProblems({
       recent: true,
       limit: 10,
     });
 
-    await sendMessage(
-      chatId,
-      formatProblems(problems)
-    );
+    await sendReply(chatId, formatProblems(problems), payload?.data);
   } catch (error) {
     console.error('Zabbix problems error:', error);
 
-    await sendMessage(
-      chatId,
-      '❌ *ZABBIX*\n\nGagal mengambil daftar problem.'
-    );
+    await sendReply(chatId, '❌ *ZABBIX*\n\nGagal mengambil daftar problem.', payload?.data);
   }
 }
 
-async function handleProblemDetail(chatId, eventid) {
+async function handleProblemDetail(chatId, eventid, payload) {
   try {
     const problem = await getProblemDetail(eventid);
 
     if (!problem) {
-      await sendMessage(
+      await sendReply(
         chatId,
         [
           '❌ *ZABBIX*',
           '',
           `Problem dengan Event ID *${eventid}* tidak ditemukan.`,
-        ].join('\n')
+        ].join('\n'),
+        payload?.data
       );
 
       return;
     }
 
-    await sendMessage(
-      chatId,
-      formatProblemDetail(problem)
-    );
+    await sendReply(chatId, formatProblemDetail(problem), payload?.data);
   } catch (error) {
     console.error(
       `Zabbix problem detail error [${eventid}]:`,
       error
     );
 
-    await sendMessage(
+    await sendReply(
       chatId,
       [
         '❌ *ZABBIX*',
         '',
         'Gagal mengambil detail problem.',
-      ].join('\n')
+      ].join('\n'),
+      payload?.data
     );
   }
 }
 
-async function handleSearch(chatId, keyword) {
+async function handleSearch(chatId, keyword, payload) {
   try {
     const problems = await searchProblems(keyword);
 
+
     if (!problems.length) {
-      await sendMessage(
+
+      await sendReply(
         chatId,
         [
           '🔎 *ZABBIX SEARCH*',
           '',
           `Tidak ditemukan problem untuk: *${keyword}*`,
-        ].join('\n')
+        ].join('\n'),
+        payload?.data
       );
 
       return;
@@ -185,20 +185,21 @@ async function handleSearch(chatId, keyword) {
       );
     });
 
-    await sendMessage(chatId, lines.join('\n'));
+    await sendReply(chatId, lines.join('\n'), payload?.data);
   } catch (error) {
     console.error(
       `Zabbix search error [${keyword}]:`,
       error
     );
 
-    await sendMessage(
+    await sendReply(
       chatId,
       [
         '❌ *ZABBIX SEARCH*',
         '',
         'Gagal melakukan pencarian.',
-      ].join('\n')
+      ].join('\n'),
+      payload?.data
     );
   }
 }
