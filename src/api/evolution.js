@@ -64,18 +64,40 @@ export async function sendMessage(number, text, options = {}) {
       }
     }
 
-    const response = await evolution.post(
-      `/message/sendText/${config.evolution.instance}`,
-      body
-    );
+    try {
+      const response = await evolution.post(
+        `/message/sendText/${config.evolution.instance}`,
+        body
+      );
 
-    if (process.env.DEBUG_EVOLUTION === 'true') {
-      console.log('DEBUG_EVOLUTION: RESPONSE status=', response.status);
-      console.log('DEBUG_EVOLUTION: RESPONSE data=', response.data);
+      if (process.env.DEBUG_EVOLUTION === 'true') {
+        console.log('DEBUG_EVOLUTION: RESPONSE status=', response.status);
+        console.log('DEBUG_EVOLUTION: RESPONSE data=', response.data);
+      }
+
+      return response.data;
+    } catch (error) {
+      // If Evolution rejects with 400 Bad Request, retry once with rawContext
+      const status = error.response?.status;
+
+      if (status === 400 && !options.rawContext) {
+        if (process.env.DEBUG_EVOLUTION === 'true') {
+          console.log('DEBUG_EVOLUTION: Received 400, retrying with rawContext=true');
+        }
+
+        return sendMessage(number, text, { ...options, rawContext: true });
+      }
+
+      console.error(
+        'Evolution API error:',
+        error.response?.status || error.message,
+        error.response?.data || ''
+      );
+
+      throw error;
     }
-
-    return response.data;
   } catch (error) {
+    // network/other errors
     console.error(
       'Evolution API error:',
       error.response?.status || error.message,
