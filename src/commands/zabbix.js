@@ -26,7 +26,6 @@ export async function handleZabbix({ chatId, args, payload }) {
         '`!zabbix search bgp`',
         '`!zabbix search timeplus`',
         '`!zabbix search XGigabitEthernet`',
-      ].join('\n')
       ].join('\n'),
       payload?.data
     );
