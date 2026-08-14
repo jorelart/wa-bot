@@ -127,3 +127,43 @@ export function formatProblems(problems) {
 
   return lines.join('\n').trim();
 }
+
+export function formatProblemDetail(problem) {
+  const priority = Number(problem.severity);
+
+  const host = formatHost(problem.trigger);
+
+  const interfaceName = getTag(problem.tags, 'interface');
+  const peerAddress = getTag(problem.tags, 'address');
+  const asNumber = getTag(problem.tags, 'as');
+  const description = getTag(problem.tags, 'description') || problem.description;
+
+  const acknowledged =
+    problem.acknowledged === '1'
+      ? '✅ ACK'
+      : '⚠️ UNACK';
+
+  const lines = [
+    '📌 *ZABBIX PROBLEM DETAIL*',
+    `Name: ${problem.name}`,
+    `Severity: ${severityIcon[priority] || '⚪'} ${severity[priority] || 'Unknown'}`,
+  ];
+
+  if (host) lines.push(`Host: ${host}`);
+  if (interfaceName) lines.push(`Interface: ${interfaceName}`);
+  if (peerAddress) lines.push(`Peer: ${peerAddress}`);
+  if (asNumber) lines.push(`AS: ${asNumber}`);
+
+  if (description) {
+    lines.push('', 'Description:', description);
+  }
+
+  lines.push(
+    '',
+    `Duration: ${formatDuration(problem.clock)}`,
+    `Status: ${acknowledged}`,
+    `Event ID: ${problem.eventid}`
+  );
+
+  return lines.join('\n');
+}

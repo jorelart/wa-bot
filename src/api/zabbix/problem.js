@@ -10,3 +10,12 @@ export async function getProblems(params = {}) {
     ...params,
   });
 }
+
+export async function searchProblems(keyword) {
+  if (!keyword) return [];
+
+  return getProblems({
+    search: { name: String(keyword) },
+    limit: 50,
+  });
+}
