@@ -1,5 +1,5 @@
 import { handleCommand } from '../commands/index.js';
-import { sendMessage, sendReply } from '../api/evolution.js';
+import { sendReply } from '../api/evolution.js';
 
 function extractMessageText(data) {
   const message = data?.message;
@@ -43,11 +43,7 @@ async function sendUnknownCommand(chatId, command, originalData = null) {
     'Ketik *!help* untuk melihat daftar command.',
   ].join('\n');
 
-  if (originalData) {
-    await sendReply(chatId, message, originalData);
-  } else {
-    await sendMessage(chatId, message);
-  }
+  await sendReply(chatId, message, originalData || null);
 }
 
 export async function handleWebhook(payload) {
