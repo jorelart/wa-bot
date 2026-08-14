@@ -38,6 +38,19 @@ export async function sendMessage(number, text, options = {}) {
           stanzaId: quotedId || null,
         };
       }
+      // add common alternative field names used by different providers
+      if (quotedId) {
+        body.stanzaId = quotedId;
+        body.quoted_msg_id = quotedId;
+        body.quotedMessageID = quotedId;
+        body.quotedMsgId = quotedId;
+      }
+
+      if (origMessage) {
+        body.quoted_message = origMessage;
+        body.quoted_message_obj = origMessage;
+        body.quoted = origMessage;
+      }
     }
 
     if (process.env.DEBUG_EVOLUTION === 'true') {
