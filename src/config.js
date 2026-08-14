@@ -18,4 +18,9 @@ export const config = {
     apiKey: required('EVOLUTION_API_KEY'),
     instance: required('EVOLUTION_INSTANCE'),
   },
+
+  zabbix: {
+    url: required('ZABBIX_API_URL'),
+    token: required('ZABBIX_API_TOKEN'),
+  },
 };

@@ -1,15 +1,14 @@
 import { sendMessage } from '../api/evolution.js';
 
-export async function handleWaid({ chatId, isGroup }) {
+export async function handleInfo({ chatId, sender, isGroup }) {
   const type = isGroup ? 'Group' : 'Private';
 
   const message = [
-    '📱 *WhatsApp Information*',
+    'ℹ️ *Chat Information*',
     '',
-    `Type: ${type}`,
-    '',
-    '*JID:*',
-    chatId,
+    `Type   : ${type}`,
+    `Chat ID: ${chatId}`,
+    `Sender : ${sender}`,
   ].join('\n');
 
   await sendMessage(chatId, message);

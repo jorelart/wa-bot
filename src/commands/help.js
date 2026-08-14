@@ -1,4 +1,4 @@
-import { sendMessage } from '../evolution/client.js';
+import { sendMessage } from '../api/evolution.js';
 import { getCommands } from './registry.js';
 
 export async function handleHelp({ chatId }) {

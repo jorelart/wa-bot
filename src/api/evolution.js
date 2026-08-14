@@ -1,10 +1,9 @@
-import axios from 'axios';
+import { createHttpClient } from './http.js';
 import { config } from '../config.js';
 
-const evolution = axios.create({
+const evolution = createHttpClient({
   baseURL: config.evolution.url,
   headers: {
-    'Content-Type': 'application/json',
     apikey: config.evolution.apiKey,
   },
 });
@@ -21,13 +20,10 @@ export async function sendMessage(number, text) {
 
     return response.data;
   } catch (error) {
-    const status = error.response?.status;
-    const data = error.response?.data;
-
     console.error(
       'Evolution API error:',
-      status || error.message,
-      data || ''
+      error.response?.status || error.message,
+      error.response?.data || ''
     );
 
     throw error;

@@ -1,5 +1,5 @@
 import { handleCommand } from '../commands/index.js';
-import { sendMessage } from '../evolution/client.js';
+import { sendMessage } from '../api/evolution.js';
 
 function extractMessageText(data) {
   const message = data?.message;
