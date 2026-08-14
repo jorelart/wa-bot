@@ -1,5 +1,5 @@
 import { handleCommand } from '../commands/index.js';
-import { sendMessage } from '../api/evolution.js';
+import { sendMessage, sendReply } from '../api/evolution.js';
 
 function extractMessageText(data) {
   const message = data?.message;
@@ -34,7 +34,7 @@ function extractMessageText(data) {
   return null;
 }
 
-async function sendUnknownCommand(chatId, command) {
+async function sendUnknownCommand(chatId, command, originalData = null) {
   const message = [
     '❌ *Unknown command*',
     '',
@@ -43,7 +43,11 @@ async function sendUnknownCommand(chatId, command) {
     'Ketik *!help* untuk melihat daftar command.',
   ].join('\n');
 
-  await sendMessage(chatId, message);
+  if (originalData) {
+    await sendReply(chatId, message, originalData);
+  } else {
+    await sendMessage(chatId, message);
+  }
 }
 
 export async function handleWebhook(payload) {
@@ -108,15 +112,16 @@ export async function handleWebhook(payload) {
     const handled = await handleCommand(command, context);
 
     if (!handled) {
-      await sendUnknownCommand(chatId, command);
+      await sendUnknownCommand(chatId, command, data);
     }
   } catch (error) {
     console.error(`Command !${command} error:`, error);
 
     try {
-      await sendMessage(
+      await sendReply(
         chatId,
-        '❌ Terjadi kesalahan saat menjalankan command.'
+        '❌ Terjadi kesalahan saat menjalankan command.',
+        data
       );
     } catch (sendError) {
       console.error('Failed to send error message:', sendError);

@@ -8,14 +8,18 @@ const evolution = createHttpClient({
   },
 });
 
-export async function sendMessage(number, text) {
+export async function sendMessage(number, text, options = {}) {
   try {
+    const body = {
+      number,
+      text,
+      ...(options.context ? { context: options.context } : {}),
+      ...(options.quotedMessageId ? { quotedMessageId: options.quotedMessageId } : {}),
+    };
+
     const response = await evolution.post(
       `/message/sendText/${config.evolution.instance}`,
-      {
-        number,
-        text,
-      }
+      body
     );
 
     return response.data;
@@ -28,4 +32,14 @@ export async function sendMessage(number, text) {
 
     throw error;
   }
+}
+
+export async function sendReply(number, text, originalMessage, opts = {}) {
+  const context = {
+    key: originalMessage?.key || null,
+    message: originalMessage?.message || originalMessage || null,
+    ...opts,
+  };
+
+  return sendMessage(number, text, { context });
 }
