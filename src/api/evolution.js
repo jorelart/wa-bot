@@ -33,6 +33,21 @@ export async function sendMessage(number, text, options = {}) {
         participant: key?.participant || null,
       };
 
+      // also include a small `context` object with only the text (conversation)
+      // to increase chance provider renders it as a reply without sending
+      // the full raw message which may be rejected.
+      const origMessage = orig?.message || null;
+
+      if (origMessage?.conversation) {
+        body.context = {
+          quotedMessage: {
+            conversation: origMessage.conversation,
+          },
+          stanzaId: quotedId || null,
+          participant: key?.participant || null,
+        };
+      }
+
       if (options.rawContext) {
         // include raw context and expanded aliases only when explicitly requested
         body.context = orig;
