@@ -1,4 +1,6 @@
 import { handleCommand } from '../commands/index.js';
+import { sendMessage } from '../evolution/client.js';
+
 
 export async function handleWebhook(payload) {
   if (payload?.event !== 'messages.upsert') {
@@ -58,5 +60,21 @@ export async function handleWebhook(payload) {
     `Command: !${command} | Chat: ${chatId} | Sender: ${context.sender}`
   );
 
-  await handleCommand(command, context);
+    const handled = await handleCommand(command, context);
+
+  if (!handled) {
+    await sendUnknownCommand(chatId, command);
+  }
+}
+
+async function sendUnknownCommand(chatId, command) {
+  const message = [
+    '❌ *Unknown command*',
+    '',
+    `Command \`!${command}\` tidak ditemukan.`,
+    '',
+    'Ketik *!help* untuk melihat daftar command.',
+  ].join('\n');
+
+  await sendMessage(chatId, message);
 }

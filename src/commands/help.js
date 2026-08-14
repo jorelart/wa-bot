@@ -1,13 +1,15 @@
 import { sendMessage } from '../evolution/client.js';
+import { getCommands } from './registry.js';
 
 export async function handleHelp({ chatId }) {
+  const commands = getCommands();
+
   const message = [
     '🤖 *WA NOC Bot*',
     '',
     '*Available commands:*',
     '',
-    '📱 !waid',
-    '❓ !help',
+    ...commands.map((command) => `📌 !${command}`),
   ].join('\n');
 
   await sendMessage(chatId, message);

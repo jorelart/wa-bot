@@ -1,10 +1,4 @@
-import { handleHelp } from './help.js';
-import { handleWaid } from './waid.js';
-
-const commands = {
-  help: handleHelp,
-  waid: handleWaid,
-};
+import { commands } from './registry.js';
 
 export async function handleCommand(command, context) {
   const handler = commands[command];
