@@ -40,10 +40,23 @@ export async function sendMessage(number, text, options = {}) {
       }
     }
 
+    if (process.env.DEBUG_EVOLUTION === 'true') {
+      try {
+        console.log('DEBUG_EVOLUTION: REQUEST body=', JSON.stringify(body));
+      } catch (e) {
+        console.log('DEBUG_EVOLUTION: Failed to stringify request body');
+      }
+    }
+
     const response = await evolution.post(
       `/message/sendText/${config.evolution.instance}`,
       body
     );
+
+    if (process.env.DEBUG_EVOLUTION === 'true') {
+      console.log('DEBUG_EVOLUTION: RESPONSE status=', response.status);
+      console.log('DEBUG_EVOLUTION: RESPONSE data=', response.data);
+    }
 
     return response.data;
   } catch (error) {

@@ -47,6 +47,14 @@ async function sendUnknownCommand(chatId, command, originalData = null) {
 }
 
 export async function handleWebhook(payload) {
+  if (process.env.DEBUG_WEBHOOK === 'true') {
+    try {
+      console.log('DEBUG_WEBHOOK: Incoming webhook payload:', JSON.stringify(payload));
+      console.log('DEBUG_WEBHOOK: Incoming data:', JSON.stringify(payload?.data));
+    } catch (e) {
+      console.log('DEBUG_WEBHOOK: Failed to stringify payload', e.message);
+    }
+  }
   if (payload?.event !== 'messages.upsert') {
     return;
   }
