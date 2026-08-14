@@ -144,5 +144,19 @@ export async function sendReply(number, text, originalMessage, opts = {}) {
     ...opts,
   };
 
+  const asQuotedText = process.env.REPLY_AS_TEXT === 'true' || opts.asQuotedText === true;
+
+  if (asQuotedText) {
+    const origText = String(context.message?.conversation || '').replace(/\s+/g, ' ').trim();
+    const preview = origText ? (origText.length > 120 ? origText.slice(0, 117) + '...' : origText) : null;
+
+    const newText = preview
+      ? `↪️ Replying to: "${preview}"\n\n${text}`
+      : text;
+
+    // send as plain message without context to ensure visible quoted text
+    return sendMessage(number, newText);
+  }
+
   return sendMessage(number, text, { context });
 }
