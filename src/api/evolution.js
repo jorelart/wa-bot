@@ -16,13 +16,11 @@ export async function sendMessage(number, text, options = {}) {
     };
 
     if (options.context) {
-      // include raw context (some Evolution instances accept this)
-      body.context = options.context;
-
-      // try to extract common identifiers to support different reply implementations
+      // By default send a minimal reply payload to avoid large/raw binary data
+      // that some Evolution instances reject. To send the full original context
+      // set `options.rawContext = true`.
       const orig = options.context;
       const key = orig?.key || orig;
-      const origMessage = orig?.message || orig?.message || null;
 
       const quotedId = key?.id || key?.stanzaId || key?.messageId || key?.remoteJid || null;
 
@@ -30,26 +28,31 @@ export async function sendMessage(number, text, options = {}) {
         body.quotedMessageId = quotedId;
       }
 
-      if (origMessage) {
-        body.quotedMessage = origMessage;
-        body.contextInfo = {
-          quotedMessage: origMessage,
-          participant: key?.participant || null,
-          stanzaId: quotedId || null,
-        };
-      }
-      // add common alternative field names used by different providers
-      if (quotedId) {
-        body.stanzaId = quotedId;
-        body.quoted_msg_id = quotedId;
-        body.quotedMessageID = quotedId;
-        body.quotedMsgId = quotedId;
-      }
+      body.contextInfo = {
+        stanzaId: quotedId || null,
+        participant: key?.participant || null,
+      };
 
-      if (origMessage) {
-        body.quoted_message = origMessage;
-        body.quoted_message_obj = origMessage;
-        body.quoted = origMessage;
+      if (options.rawContext) {
+        // include raw context and expanded aliases only when explicitly requested
+        body.context = orig;
+
+        const origMessage = orig?.message || null;
+
+        if (quotedId) {
+          body.stanzaId = quotedId;
+          body.quoted_msg_id = quotedId;
+          body.quotedMessageID = quotedId;
+          body.quotedMsgId = quotedId;
+        }
+
+        if (origMessage) {
+          body.quotedMessage = origMessage;
+          body.quoted_message = origMessage;
+          body.quoted_message_obj = origMessage;
+          body.quoted = origMessage;
+          body.quoted_message_obj = origMessage;
+        }
       }
     }
 
