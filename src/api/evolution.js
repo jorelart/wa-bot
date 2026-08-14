@@ -51,7 +51,14 @@ export async function sendMessage(number, text, options = {}) {
       body.contextInfo = {
         ...body.contextInfo,
         quotedMessage: origMessage?.conversation
-          ? { conversation: origMessage.conversation, stanzaId: quotedId || null }
+          ? {
+              conversation: origMessage.conversation,
+              stanzaId: quotedId || null,
+              key: {
+                id: quotedId || null,
+                remoteJid: number || null,
+              },
+            }
           : undefined,
       };
 
