@@ -1,4 +1,4 @@
-import { sendMessage } from '../evolution/client.js';
+import { sendMessage } from '../api/evolution.js';
 import { getProblemDetails } from '../api/zabbix/problem-details.js';
 import { formatProblems } from '../formatters/zabbix.js';
 
