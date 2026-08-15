@@ -1,16 +1,19 @@
-import { sendReply } from '../api/evolution.js';
-import { getCommands } from './registry.js';
-
-export async function handleHelp({ chatId, payload }) {
-  const commands = getCommands();
-
+export async function handleHelp({ reply }) {
   const message = [
     '🤖 *WA NOC Bot*',
     '',
     '*Available commands:*',
     '',
-    ...commands.map((command) => `📌 !${command}`),
+    '📱 !waid',
+    '❓ !help',
+    '🏓 !ping',
+    'ℹ️ !info',
+    '📊 !zabbix',
+    '',
+    'Contoh:',
+    '!zabbix problems',
+    '!zabbix search bgp',
   ].join('\n');
 
-  await sendReply(chatId, message, payload?.data);
+  await reply(message);
 }

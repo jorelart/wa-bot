@@ -1,7 +1,11 @@
-import { sendReply } from '../api/evolution.js';
-
-export async function handleWaid({ chatId, isGroup, payload }) {
-  const type = isGroup ? 'Group' : 'Private';
+export async function handleWaid({
+  reply,
+  chatId,
+  isGroup,
+}) {
+  const type = isGroup
+    ? 'Group'
+    : 'Private';
 
   const message = [
     '📱 *WhatsApp Information*',
@@ -12,5 +16,5 @@ export async function handleWaid({ chatId, isGroup, payload }) {
     chatId,
   ].join('\n');
 
-  await sendReply(chatId, message, payload?.data);
+  await reply(message);
 }

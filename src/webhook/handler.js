@@ -8,17 +8,14 @@ function extractMessageText(data) {
     return null;
   }
 
-  // Pesan teks biasa
   if (typeof message.conversation === 'string') {
     return message.conversation;
   }
 
-  // Pesan teks dengan extended message
   if (typeof message.extendedTextMessage?.text === 'string') {
     return message.extendedTextMessage.text;
   }
 
-  // Caption pada image/video/document
   if (typeof message.imageMessage?.caption === 'string') {
     return message.imageMessage.caption;
   }
@@ -34,7 +31,7 @@ function extractMessageText(data) {
   return null;
 }
 
-async function sendUnknownCommand(chatId, command, originalData = null) {
+async function sendUnknownCommand(reply, command) {
   const message = [
     '❌ *Unknown command*',
     '',
@@ -43,18 +40,10 @@ async function sendUnknownCommand(chatId, command, originalData = null) {
     'Ketik *!help* untuk melihat daftar command.',
   ].join('\n');
 
-  await sendReply(chatId, message, originalData || null);
+  await reply(message);
 }
 
 export async function handleWebhook(payload) {
-  if (process.env.DEBUG_WEBHOOK === 'true') {
-    try {
-      console.log('DEBUG_WEBHOOK: Incoming webhook payload:', JSON.stringify(payload));
-      console.log('DEBUG_WEBHOOK: Incoming data:', JSON.stringify(payload?.data));
-    } catch (e) {
-      console.log('DEBUG_WEBHOOK: Failed to stringify payload', e.message);
-    }
-  }
   if (payload?.event !== 'messages.upsert') {
     return;
   }
@@ -67,7 +56,7 @@ export async function handleWebhook(payload) {
 
   const key = data.key;
 
-  // Abaikan pesan yang dikirim oleh bot sendiri
+  // Jangan proses pesan dari bot sendiri
   if (key?.fromMe) {
     return;
   }
@@ -98,14 +87,42 @@ export async function handleWebhook(payload) {
     return;
   }
 
+  /*
+   * Semua command mendapatkan fungsi reply.
+   *
+   * Contoh:
+   * await reply('Pong!');
+   *
+   * reply otomatis akan mencoba membalas
+   * pesan WhatsApp yang menjadi trigger command.
+   */
+  const reply = async (replyText) => {
+    return sendReply(chatId, replyText, data);
+  };
+
   const context = {
     chatId,
-    sender: key.participantAlt || key.participant || key.remoteJid,
-    isGroup: chatId.endsWith('@g.us'),
+
+    sender:
+      key.participantAlt ||
+      key.participant ||
+      key.remoteJid,
+
+    isGroup:
+      typeof chatId === 'string' &&
+      chatId.endsWith('@g.us'),
+
     command,
     args: parts,
     rawMessage: text,
     payload,
+
+    // Fungsi reply terpusat
+    reply,
+
+    // Tetap tersedia jika suatu saat command
+    // membutuhkan data webhook asli.
+    quoted: data,
   };
 
   console.log(
@@ -113,22 +130,29 @@ export async function handleWebhook(payload) {
   );
 
   try {
-    const handled = await handleCommand(command, context);
+    const handled = await handleCommand(
+      command,
+      context
+    );
 
     if (!handled) {
-      await sendUnknownCommand(chatId, command, data);
+      await sendUnknownCommand(reply, command);
     }
   } catch (error) {
-    console.error(`Command !${command} error:`, error);
+    console.error(
+      `Command !${command} error:`,
+      error
+    );
 
     try {
-      await sendReply(
-        chatId,
-        '❌ Terjadi kesalahan saat menjalankan command.',
-        data
+      await reply(
+        '❌ Terjadi kesalahan saat menjalankan command.'
       );
     } catch (sendError) {
-      console.error('Failed to send error message:', sendError);
+      console.error(
+        'Failed to send error message:',
+        sendError
+      );
     }
   }
 }

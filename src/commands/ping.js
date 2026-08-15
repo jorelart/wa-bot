@@ -1,5 +1,3 @@
-import { sendReply } from '../api/evolution.js';
-
-export async function handlePing({ chatId, payload }) {
-  await sendReply(chatId, '🏓 *Pong!*', payload?.data);
+export async function handlePing({ reply }) {
+  await reply('🏓 *Pong!*');
 }
