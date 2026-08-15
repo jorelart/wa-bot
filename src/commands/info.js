@@ -1,6 +1,12 @@
 import { sendReply } from '../api/evolution.js';
 
-export async function handleInfo({ reply }) {
+export async function handleInfo({
+  chatId,
+  sender,
+  isGroup,
+  payload,
+}) {
+  const type = isGroup ? 'Group' : 'Private';
 
   const message = [
     'ℹ️ *Chat Information*',
@@ -10,5 +16,9 @@ export async function handleInfo({ reply }) {
     `Sender : ${sender}`,
   ].join('\n');
 
-  await reply(message);
+  await sendReply(
+    chatId,
+    message,
+    payload?.data
+  );
 }
