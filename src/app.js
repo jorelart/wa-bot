@@ -13,9 +13,6 @@ app.get('/', (req, res) => {
   });
 });
 
-/*
- * Evolution API Webhook
- */
 app.post('/webhook', async (req, res) => {
   try {
     await handleWebhook(req.body);
@@ -29,7 +26,5 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.listen(config.port, '0.0.0.0', () => {
-  console.log(
-    `WA Bot listening on port ${config.port}`
-  );
+  console.log(`WA Bot listening on port ${config.port}`);
 });
