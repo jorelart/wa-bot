@@ -31,12 +31,24 @@ export async function sendMessage(number, text) {
 }
 
 export async function sendReply(number, text, originalMessage) {
-  const context = {
-    key: originalMessage?.key || null,
-    message: originalMessage?.message || originalMessage || null,
-  };
+  try {
+    const response = await evolution.post(
+      `/message/sendText/${config.evolution.instance}`,
+      {
+        number,
+        text,
+        quoted: originalMessage,
+      }
+    );
 
-  return sendMessage(number, text, {
-    context,
-  });
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Evolution API reply error:',
+      error.response?.status || error.message,
+      error.response?.data || ''
+    );
+
+    throw error;
+  }
 }
