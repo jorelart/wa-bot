@@ -1,3 +1,51 @@
+const processedMessages = new Map();
+
+const DEDUPE_TTL = 10_000; // 10 detik
+
+function getMessageKey(payload) {
+  const messageId =
+    payload?.key?.id ||
+    payload?.messageId ||
+    payload?.id;
+
+  const remoteJid =
+    payload?.key?.remoteJid ||
+    payload?.remoteJid ||
+    '';
+
+  const query = String(payload?.query || '').trim();
+
+  // Prioritas utama: message ID
+  if (messageId) {
+    return `message:${remoteJid}:${messageId}`;
+  }
+
+  // Fallback jika Evolution Bot tidak mengirim message ID
+  return `query:${remoteJid}:${query}`;
+}
+
+function isDuplicate(payload) {
+  const key = getMessageKey(payload);
+
+  const now = Date.now();
+
+  // Bersihkan cache lama
+  for (const [cacheKey, timestamp] of processedMessages.entries()) {
+    if (now - timestamp > DEDUPE_TTL) {
+      processedMessages.delete(cacheKey);
+    }
+  }
+
+  if (processedMessages.has(key)) {
+    console.log('EvolutionBot duplicate ignored:', key);
+    return true;
+  }
+
+  processedMessages.set(key, now);
+
+  return false;
+}
+
 export async function handleEvolutionBot(payload) {
   const query = String(payload?.query || '').trim();
 
@@ -7,18 +55,42 @@ export async function handleEvolutionBot(payload) {
     return '❌ Pesan kosong.';
   }
 
-  let commandText = query;
-
-  // Evolution Bot biasanya mengirim keyword "AI"
-  if (/^AI\b/i.test(commandText)) {
-    commandText = commandText.replace(/^AI\b/i, '').trim();
+  /*
+   * Evolution Bot bisa mengirim request yang sama lebih dari sekali.
+   * Jangan proses ulang request dengan message ID yang sama.
+   */
+  if (isDuplicate(payload)) {
+    // Jangan menghasilkan response kedua.
+    return '';
   }
 
-  // Test pertama
+  let commandText = query;
+
+  /*
+   * Evolution Bot biasanya mengirim:
+   *
+   * AI
+   * AI !ping
+   * AI !zabbix
+   *
+   * Kita buang keyword AI.
+   */
+  if (/^AI\b/i.test(commandText)) {
+    commandText = commandText
+      .replace(/^AI\b/i, '')
+      .trim();
+  }
+
+  /*
+   * Test command
+   */
   if (commandText === '!ping') {
     return '🏓 Pong!';
   }
 
+  /*
+   * Help
+   */
   if (commandText === '!help') {
     return [
       '🤖 *WA NOC Bot*',
@@ -33,6 +105,9 @@ export async function handleEvolutionBot(payload) {
     ].join('\n');
   }
 
+  /*
+   * Semua command harus diawali !
+   */
   if (!commandText.startsWith('!')) {
     return [
       '🤖 *WA NOC Bot*',

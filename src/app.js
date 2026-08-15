@@ -17,15 +17,30 @@ app.get('/', (req, res) => {
 /*
  * Evolution API Webhook
  */
-app.post('/webhook', async (req, res) => {
+app.post('/evolution-bot', async (req, res) => {
   try {
-    await handleWebhook(req.body);
+    console.log('Evolution Bot request:', {
+      query: req.body?.query,
+      messageId:
+        req.body?.key?.id ||
+        req.body?.messageId ||
+        req.body?.id,
+      remoteJid:
+        req.body?.key?.remoteJid ||
+        req.body?.remoteJid,
+    });
 
-    res.sendStatus(200);
+    const result = await handleEvolutionBot(req.body);
+
+    res.status(200).json({
+      message: result,
+    });
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('Evolution Bot error:', error);
 
-    res.sendStatus(500);
+    res.status(500).json({
+      message: '❌ Terjadi kesalahan pada WA-Bot.',
+    });
   }
 });
 
