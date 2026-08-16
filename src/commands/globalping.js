@@ -6,6 +6,28 @@ import {
 
 export async function handleGlobalping({ reply, args }) {
   const subcommand = args[0]?.toLowerCase();
+  const target = args[1];
+  const probeCountRaw = args[args.length - 1];
+
+    const hasProbeCount =
+    /^\d+$/.test(probeCountRaw) &&
+    args.length >= 4;
+
+    const probeCount = hasProbeCount
+    ? Math.min(
+        Math.max(Number(probeCountRaw), 1),
+        5
+        )
+    : 3;
+
+    const locationEnd = hasProbeCount
+    ? args.length - 1
+    : args.length;
+
+    const location = args
+    .slice(2, locationEnd)
+    .join(' ')
+    .trim();
 
   if (!['ping', 'traceroute'].includes(subcommand)) {
     await reply(
@@ -32,32 +54,52 @@ export async function handleGlobalping({ reply, args }) {
 
   if (!target || !location) {
     await reply(
-      [
+        [
         `🌐 *GLOBALPING ${subcommand.toUpperCase()}*`,
         '',
         'Format:',
-        `\`!gp ${subcommand} <target> <location>\``,
+        `\`!gp ${subcommand} <target> <location> [probe]\``,
         '',
         'Contoh:',
         `\`!gp ${subcommand} 8.8.8.8 Pati\``,
-      ].join('\n')
+        `\`!gp ${subcommand} 8.8.8.8 Pati 5\``,
+        '',
+        'Probe: 1-5',
+        'Default: 3',
+        ].join('\n')
     );
 
     return;
-  }
-
-  if (subcommand === 'ping') {
-    await handlePing(reply, target, location);
-    return;
-  }
-
-  if (subcommand === 'traceroute') {
-    await handleTraceroute(reply, target, location);
-    return;
-  }
 }
 
-async function handlePing(reply, target, location) {
+if (subcommand === 'ping') {
+  await handlePing(
+    reply,
+    target,
+    location,
+    probeCount
+  );
+
+  return;
+}
+
+if (subcommand === 'traceroute') {
+  await handleTraceroute(
+    reply,
+    target,
+    location,
+    probeCount
+  );
+
+  return;
+}
+
+async function handlePing(
+    reply,
+    target,
+    location,
+    probeCount
+    ) {
   try {
     await reply(
       [
@@ -71,8 +113,9 @@ async function handlePing(reply, target, location) {
     );
 
     const measurement = await createPing(
-      target,
-      location
+        target,
+        location,
+        probeCount
     );
 
     const measurementId = measurement.id;
@@ -118,22 +161,24 @@ async function handlePing(reply, target, location) {
   }
 }
 
-async function handleTraceroute(reply, target, location) {
+async function handleTraceroute(reply, target, location, probeCount) {
   try {
     await reply(
-      [
-        '🌐 *GLOBALPING TRACEROUTE*',
-        '',
-        `🎯 Target: *${target}*`,
-        `📍 Location: *${location}*`,
-        '',
-        '⏳ Menjalankan traceroute...',
-      ].join('\n')
+        [
+            '🌐 *GLOBALPING TRACEROUTE*',
+            '',
+            `🎯 Target: *${target}*`,
+            `📍 Location: *${location}*`,
+            `📡 Probes: *${probeCount}*`,
+            '',
+            '⏳ Menjalankan traceroute...',
+        ].join('\n')
     );
 
     const measurement = await createTraceroute(
       target,
-      location
+      location,
+      probeCount
     );
 
     const measurementId = measurement.id;
@@ -271,95 +316,100 @@ function formatPingResult(data, target, location) {
 }
 
 function formatTracerouteResult(
-  data,
-  target,
-  location
-) {
-  const results = data.results || [];
+    data,
+    target,
+    location
+    ) {
+    const results = data.results || [];
 
-  if (!results.length) {
-    return [
-      '❌ *GLOBALPING TRACEROUTE*',
-      '',
-      `🎯 Target: *${target}*`,
-      `📍 Location: *${location}*`,
-      '',
-      'Tidak ada hasil dari probe.',
-    ].join('\n');
-  }
+    if (!results.length) {
+        return [
+        '❌ *GLOBALPING TRACEROUTE*',
+        '',
+        `🎯 Target: *${target}*`,
+        `📍 Location: *${location}*`,
+        '',
+        'Tidak ada hasil dari probe.',
+        ].join('\n');
+    }
 
-  const lines = [
-    '🌐 *GLOBALPING TRACEROUTE*',
-    '',
-    `🎯 Target: *${target}*`,
-    `📍 Requested: *${location}*`,
-    '',
-  ];
+    const lines = [
+        '🌐 *GLOBALPING TRACEROUTE*',
+        '',
+        `🎯 Target: *${target}*`,
+        `📍 Requested: *${location}*`,
+        `📡 Probes: *${results.length}*`,
+        '',
+    ];
 
-  for (const item of results) {
-    const probe = item.probe || {};
-    const result = item.result || {};
+    results.forEach((item, index) => {
+        const probe = item.probe || {};
+        const result = item.result || {};
 
-    lines.push(
-      `📡 *${probe.city || '-'}, ${
-        probe.country || '-'
-      }*`,
-      `🏢 ${probe.network || '-'}`,
-      `ASN: ${probe.asn || '-'}`,
-      ''
-    );
-
-    const hops = result.hops || [];
-
-    if (!hops.length) {
-      lines.push(
-        '❌ Tidak ada hop yang ditemukan.',
+        lines.push(
+        `📡 *Probe ${index + 1}*`,
+        `📍 ${probe.city || '-'}, ${probe.country || '-'}`,
+        `🏢 ${probe.network || '-'}`,
+        `ASN: ${probe.asn || '-'}`,
         ''
-      );
+        );
 
-      continue;
+        const hops = result.hops || [];
+
+        if (!hops.length) {
+        lines.push(
+            '❌ Tidak ada hop.',
+            ''
+        );
+
+        return;
+        }
+
+        lines.push('*Route:*');
+
+        hops.forEach((hop, hopIndex) => {
+        const hostname =
+            hop.resolvedHostname || '*';
+
+        const address =
+            hop.resolvedAddress || '-';
+
+        const timings = hop.timings || [];
+
+        const rtts = timings
+            .map(timing => timing.rtt)
+            .filter(
+            value =>
+                value !== undefined &&
+                value !== null
+            );
+
+        const avgRtt = rtts.length
+            ? rtts.reduce(
+                (sum, value) => sum + Number(value),
+                0
+            ) / rtts.length
+            : null;
+
+        lines.push(
+            `${hopIndex + 1}. ${hostname} (${address})${
+            avgRtt !== null
+                ? ` — ${formatMs(avgRtt)}`
+                : ''
+            }`
+        );
+        });
+
+        lines.push('');
+    });
+
+    if (data.id) {
+        lines.push(
+        `🔗 https://globalping.io?measurement=${data.id}`
+        );
     }
 
-    lines.push('*Route:*');
-
-    for (const hop of hops) {
-      const hopNumber =
-        hop.hop ?? hop.ttl ?? '-';
-
-      const hostname =
-        hop.hostname ||
-        hop.resolvedHostname ||
-        hop.address ||
-        '*';
-
-      const address =
-        hop.address ||
-        hop.ip ||
-        '-';
-
-      const rtt =
-        hop.rtt ??
-        hop.timings?.[0]?.rtt;
-
-      lines.push(
-        `${hopNumber}. ${hostname} (${address})${
-          rtt !== undefined
-            ? ` — ${formatMs(rtt)}`
-            : ''
-        }`
-      );
-    }
-
-    lines.push('');
-  }
-
-  if (data.id) {
-    lines.push(
-      `🔗 https://globalping.io?measurement=${data.id}`
-    );
-  }
-
-  return lines.join('\n').trim();
+    return lines.join('\n').trim();
 }
 
 function formatMs(value) {

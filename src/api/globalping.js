@@ -14,49 +14,44 @@ const globalping = createHttpClient({
   headers,
 });
 
-export async function createPing(target, location) {
-  try {
-    const response = await globalping.post('/measurements', {
-      target,
-      type: 'ping',
-      locations: [
-        {
-          magic: location,
-          limit: 1,
-        },
-      ],
-      measurementOptions: {
-        packets: 4,
+export async function createPing(target, location, probeCount = 3) {
+  const response = await globalping.post('/measurements', {
+    target,
+    type: 'ping',
+    locations: [
+      {
+        magic: location,
+        limit: probeCount,
       },
-    });
+    ],
+    measurementOptions: {
+      packets: 4,
+    },
+  });
 
-    console.log('Globalping create measurement:', {
-      status: response.status,
-      id: response.data?.id,
-      target,
-      location,
-    });
+  console.log('Globalping create measurement:', {
+    status: response.status,
+    id: response.data?.id,
+    target,
+    location,
+    probeCount,
+  });
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      'Globalping create measurement error:',
-      error.response?.status || error.message,
-      error.response?.data || ''
-    );
-
-    throw error;
-  }
+  return response.data;
 }
 
-export async function createTraceroute(target, location) {
+export async function createTraceroute(
+  target,
+  location,
+  probeCount = 3
+) {
   const response = await globalping.post('/measurements', {
     target,
     type: 'traceroute',
     locations: [
       {
         magic: location,
-        limit: 1,
+        limit: probeCount,
       },
     ],
   });
@@ -66,6 +61,7 @@ export async function createTraceroute(target, location) {
     id: response.data?.id,
     target,
     location,
+    probeCount,
   });
 
   return response.data;
