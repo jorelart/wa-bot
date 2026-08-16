@@ -608,9 +608,8 @@ function formatDnsResult(
   const lines = [
     '🌐 *GLOBALPING DNS*',
     '',
-    `🎯 Target: *${target}*`,
-    `📍 Requested: *${location}*`,
-    `📡 Probes: *${results.length}*`,
+    `🎯 ${target}`,
+    `📍 ${location}`,
     '',
   ];
 
@@ -618,12 +617,55 @@ function formatDnsResult(
     const probe = item.probe || {};
     const result = item.result || {};
 
+    const probeId =
+      probe.id ||
+      probe.probeId ||
+      probe.address ||
+      '-';
+
+    const city = probe.city || '-';
+    const country = probe.country || '-';
+    const network = probe.network || '-';
+
+    const asn = probe.asn
+      ? `AS${probe.asn}`
+      : '-';
+
+    const resolver =
+      probe.resolvers?.join(', ') ||
+      result.resolver ||
+      '-';
+
+    const status =
+      result.status ||
+      item.status ||
+      '-';
+
     lines.push(
-      `Probe ${index + 1}: ${probe.city || '-'}, ${probe.country || '-'}`,
-      `ASN: ${probe.asn || '-'}`,
-      `Status: ${result.status || '-'}`,
+      `📡 *Probe ${index + 1}*`,
+      `ID: ${probeId}`,
+      `📍 ${city}, ${country}`,
+      `🏢 ${network}`,
+      `ASN: ${asn}`,
+      `Resolver: ${resolver}`,
+      `Status: ${status}`,
       ''
     );
+
+    const answers = extractDnsAnswers(result);
+
+    if (answers.length) {
+      lines.push(
+        '*Answer:*',
+        ...answers.map(answer => `• ${answer}`),
+        ''
+      );
+    } else {
+      lines.push(
+        'Answer: -',
+        ''
+      );
+    }
   });
 
   if (data.id) {
@@ -633,6 +675,43 @@ function formatDnsResult(
   }
 
   return lines.join('\n').trim();
+}
+
+function extractDnsAnswers(result) {
+  const answers = [];
+
+  if (Array.isArray(result.answers)) {
+    for (const answer of result.answers) {
+      if (typeof answer === 'string') {
+        answers.push(answer);
+        continue;
+      }
+
+      if (answer?.data) {
+        answers.push(String(answer.data));
+        continue;
+      }
+
+      if (answer?.value) {
+        answers.push(String(answer.value));
+      }
+    }
+  }
+
+  if (
+    !answers.length &&
+    Array.isArray(result.records)
+  ) {
+    for (const record of result.records) {
+      if (record?.data) {
+        answers.push(String(record.data));
+      }
+    }
+  }
+
+  return [
+    ...new Set(answers),
+  ];
 }
 
 function formatMs(value) {
