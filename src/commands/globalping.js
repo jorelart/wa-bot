@@ -314,12 +314,11 @@ async function handleDns(
     await reply(
       [
         '🌐 *GLOBALPING DNS*',
+        `- Target: *${target}*`,
+        `- Location: *${location}*`,
+        `- Probes: *${probeCount}*`,
         '',
-        `🎯 Target: *${target}*`,
-        `📍 Location: *${location}*`,
-        `📡 Probes: *${probeCount}*`,
-        '',
-        '⏳ Menjalankan DNS lookup...',
+        'Menjalankan DNS lookup...',
       ].join('\n')
     );
 
@@ -587,15 +586,19 @@ function formatTracerouteResult(
   return lines.join('\n').trim();
 }
 
-function formatDnsResult(data, target, location) {
+function formatDnsResult(
+  data,
+  target,
+  location
+) {
   const results = data.results || [];
 
   if (!results.length) {
     return [
       '❌ *GLOBALPING DNS*',
       '',
-      `🎯 ${target}`,
-      `📍 ${location}`,
+      `🎯 Target: *${target}*`,
+      `📍 Location: *${location}*`,
       '',
       'Tidak ada hasil dari probe.',
     ].join('\n');
@@ -609,45 +612,50 @@ function formatDnsResult(data, target, location) {
 
     const city = probe.city || '-';
     const country = probe.country || '-';
+    const network = probe.network || '-';
 
     const asn = probe.asn
       ? `AS${probe.asn}`
       : '-';
 
-    const network = probe.network || '-';
-
     const resolver =
-      Array.isArray(probe.resolvers) &&
-      probe.resolvers.length
+      Array.isArray(probe.resolvers)
         ? probe.resolvers.join(', ')
-        : '-';
-
-    lines.push(
-      `🌍 Dari: ${city}, ${country}`,
-      `📡 ASN: ${asn} (${network})`,
-      ''
-    );
+        : result.resolver || '-';
 
     const answers = extractDnsAnswers(result);
+
+    lines.push(
+      `🌍 ${city}, ${country}`,
+      `📡 ${asn} (${network})`,
+      ''
+    );
 
     if (answers.length) {
       lines.push(
         ...answers,
-        `Resolver: ${resolver}`
+        ''
       );
     } else {
       lines.push(
         'Answer: -',
-        `Resolver: ${resolver}`
+        ''
       );
     }
 
-    lines.push('---');
+    lines.push(
+      `Resolver: ${resolver}`,
+      '---',
+      ' '
+    );
   });
 
-  // Hapus separator terakhir
-  if (lines.at(-1) === '---') {
-    lines.pop();
+  // Link measurement
+  if (data.id) {
+    lines.push(
+      '',
+      `🔗 https://globalping.io?measurement=${data.id}`
+    );
   }
 
   return lines.join('\n').trim();
