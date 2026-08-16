@@ -314,11 +314,12 @@ async function handleDns(
     await reply(
       [
         '🌐 *GLOBALPING DNS*',
-        `- Target: *${target}*`,
-        `- Location: *${location}*`,
-        `- Probes: *${probeCount}*`,
         '',
-        'Menjalankan DNS lookup...',
+        `🎯 Target: *${target}*`,
+        `📍 Location: *${location}*`,
+        `📡 Probes: *${probeCount}*`,
+        '',
+        '⏳ Menjalankan DNS Lookup...',
       ].join('\n')
     );
 
@@ -449,8 +450,10 @@ function formatPingResult(data, target, location) {
     const network = probe.network || '-';
 
     lines.push(
+      '```',
       `🌍 ${city}, ${country}`,
       `📡 ${asn} (${network})`,
+      '```',
       ''
     );
 
