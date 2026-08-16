@@ -587,67 +587,44 @@ function formatTracerouteResult(
   return lines.join('\n').trim();
 }
 
-function formatDnsResult(
-  data,
-  target,
-  location
-) {
+function formatDnsResult(data, target, location) {
   const results = data.results || [];
 
   if (!results.length) {
     return [
       '❌ *GLOBALPING DNS*',
       '',
-      `🎯 Target: *${target}*`,
-      `📍 Location: *${location}*`,
+      `🎯 ${target}`,
+      `📍 ${location}`,
       '',
       'Tidak ada hasil dari probe.',
     ].join('\n');
   }
 
-  const lines = [
-    '🌐 *GLOBALPING DNS*',
-    '',
-    `🎯 ${target}`,
-    `📍 ${location}`,
-    '',
-  ];
+  const lines = [];
 
-  results.forEach((item, index) => {
+  results.forEach((item) => {
     const probe = item.probe || {};
     const result = item.result || {};
 
-    const probeId =
-      probe.id ||
-      probe.probeId ||
-      probe.address ||
-      '-';
-
     const city = probe.city || '-';
     const country = probe.country || '-';
-    const network = probe.network || '-';
 
     const asn = probe.asn
       ? `AS${probe.asn}`
       : '-';
 
-    const resolver =
-      probe.resolvers?.join(', ') ||
-      result.resolver ||
-      '-';
+    const network = probe.network || '-';
 
-    const status =
-      result.status ||
-      item.status ||
-      '-';
+    const resolver =
+      Array.isArray(probe.resolvers) &&
+      probe.resolvers.length
+        ? probe.resolvers.join(', ')
+        : '-';
 
     lines.push(
-      `📡 *Probe ${index + 1}*`,
-      `📍 ${city}, ${country}`,
-      `🏢 ${network}`,
-      `ASN: ${asn}`,
-      `Resolver: ${resolver}`,
-      `Status: ${status}`,
+      `🌍 Dari: ${city}, ${country}`,
+      `📡 ASN: ${asn} (${network})`,
       ''
     );
 
@@ -655,22 +632,22 @@ function formatDnsResult(
 
     if (answers.length) {
       lines.push(
-        '*Answer:*',
-        ...answers.map(answer => `• ${answer}`),
-        ''
+        ...answers,
+        `Resolver: ${resolver}`
       );
     } else {
       lines.push(
         'Answer: -',
-        ''
+        `Resolver: ${resolver}`
       );
     }
+
+    lines.push('---');
   });
 
-  if (data.id) {
-    lines.push(
-      `🔗 https://globalping.io?measurement=${data.id}`
-    );
+  // Hapus separator terakhir
+  if (lines.at(-1) === '---') {
+    lines.pop();
   }
 
   return lines.join('\n').trim();
@@ -679,6 +656,20 @@ function formatDnsResult(
 function extractDnsAnswers(result) {
   const answers = [];
 
+  /*
+   * Globalping DNS biasanya mengembalikan
+   * answer dalam bentuk object.
+   *
+   * Contoh:
+   *
+   * {
+   *   name: "google.com.",
+   *   type: "A",
+   *   ttl: 2,
+   *   data: "172.217.194.139"
+   * }
+   */
+
   if (Array.isArray(result.answers)) {
     for (const answer of result.answers) {
       if (typeof answer === 'string') {
@@ -686,24 +677,74 @@ function extractDnsAnswers(result) {
         continue;
       }
 
-      if (answer?.data) {
-        answers.push(String(answer.data));
+      if (!answer || typeof answer !== 'object') {
         continue;
       }
 
-      if (answer?.value) {
-        answers.push(String(answer.value));
+      const name =
+        answer.name ||
+        answer.hostname ||
+        '';
+
+      const type =
+        answer.type ||
+        '';
+
+      const value =
+        answer.data ??
+        answer.value ??
+        answer.address ??
+        '';
+
+      const ttl =
+        answer.ttl ??
+        answer.TTL ??
+        '';
+
+      if (name || type || value) {
+        answers.push(
+          `${name} IN ${type} ${value}${ttl !== '' ? ` (${ttl})` : ''}`
+        );
       }
     }
   }
 
+  /*
+   * Fallback jika API menggunakan records
+   */
   if (
     !answers.length &&
     Array.isArray(result.records)
   ) {
     for (const record of result.records) {
-      if (record?.data) {
-        answers.push(String(record.data));
+      if (!record || typeof record !== 'object') {
+        continue;
+      }
+
+      const name =
+        record.name ||
+        record.hostname ||
+        '';
+
+      const type =
+        record.type ||
+        '';
+
+      const value =
+        record.data ??
+        record.value ??
+        record.address ??
+        '';
+
+      const ttl =
+        record.ttl ??
+        record.TTL ??
+        '';
+
+      if (name || type || value) {
+        answers.push(
+          `${name} IN ${type} ${value}${ttl !== '' ? ` (${ttl})` : ''}`
+        );
       }
     }
   }
