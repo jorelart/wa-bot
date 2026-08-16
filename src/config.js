@@ -19,6 +19,10 @@ export const config = {
     instance: required('EVOLUTION_INSTANCE'),
   },
 
+  bot: {
+    lid: required('BOT_LID'),
+  },
+
   zabbix: {
     url: required('ZABBIX_API_URL'),
     token: required('ZABBIX_API_TOKEN'),

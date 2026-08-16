@@ -1,6 +1,5 @@
 import { handleCommand } from '../commands/index.js';
 import { sendReply } from '../api/evolution.js';
-import { config } from '../config.js';
 
 function extractMessageText(data) {
   const message = data?.message;
@@ -30,34 +29,6 @@ function extractMessageText(data) {
   }
 
   return null;
-}
-
-function isBotMentioned(data) {
-  const mentionedJid =
-    data?.message?.contextInfo?.mentionedJid;
-
-  if (!Array.isArray(mentionedJid)) {
-    return false;
-  }
-
-  return mentionedJid.includes(config.bot.lid);
-}
-
-function removeBotMention(text, data) {
-  const mentionedJid =
-    data?.message?.contextInfo?.mentionedJid;
-
-  if (!Array.isArray(mentionedJid)) {
-    return text;
-  }
-
-  if (!mentionedJid.includes(config.bot.lid)) {
-    return text;
-  }
-
-  return text
-    .replace(/^@\d+\s*/, '')
-    .trim();
 }
 
 async function sendUnknownCommand(reply, command) {
@@ -103,14 +74,7 @@ export async function handleWebhook(payload) {
     return;
   }
 
-  const isGroup = chatId.endsWith('@g.us');
-
-  // Di group, bot hanya merespons jika di-mention
-  if (isGroup && !isBotMentioned(data)) {
-    return;
-  }
-
-  const text = removeBotMention(message.trim(), data);
+  const text = message.trim();
 
   if (!text.startsWith('!')) {
     return;
@@ -138,16 +102,18 @@ export async function handleWebhook(payload) {
   };
 
   const context = {
-  chatId,
+    chatId,
 
-  sender:
-    key.participantAlt ||
-    key.participant ||
-    key.remoteJid,
+    sender:
+      key.participantAlt ||
+      key.participant ||
+      key.remoteJid,
 
-  isGroup,
+    isGroup:
+      typeof chatId === 'string' &&
+      chatId.endsWith('@g.us'),
 
-  command,
+    command,
     args: parts,
     rawMessage: text,
     payload,
@@ -161,12 +127,8 @@ export async function handleWebhook(payload) {
   };
 
   console.log(
-  `Command: !${command} | Chat: ${chatId} | Group: ${isGroup} | Mentioned: ${isBotMentioned(data)} | Sender: ${context.sender}`
-);
-
-  // console.log(
-  //   `Command: !${command} | Chat: ${chatId} | Sender: ${context.sender}`
-  // );
+    `Command: !${command} | Chat: ${chatId} | Sender: ${context.sender}`
+  );
 
   try {
     const handled = await handleCommand(
