@@ -450,16 +450,16 @@ function formatPingResult(data, target, location) {
     const network = probe.network || '-';
 
     lines.push(
-      '```',
       `🌍 ${city}, ${country}`,
       `📡 ${asn} (${network})`,
-      '```',
       ''
     );
 
     if (result.rawOutput) {
       lines.push(
+        '```',
         result.rawOutput.trim(),
+        '```',
         ''
       );
     } else {
@@ -526,7 +526,9 @@ function formatTracerouteResult(
 
     if (result.rawOutput) {
       lines.push(
+        '```',
         result.rawOutput.trim(),
+        '```',
         ''
       );
     } else {
@@ -595,18 +597,24 @@ function formatDnsResult(
 
     if (answers.length) {
       lines.push(
+        '```',
         ...answers,
+        '```',
         ''
       );
     } else {
       lines.push(
+        '```',
         'Answer: -',
+        '```',
         ''
       );
     }
 
     lines.push(
+      '```',
       `Resolver: ${resolver}`,
+      '```',
       '---',
       ' '
     );
