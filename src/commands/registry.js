@@ -10,7 +10,7 @@ export const commands = {
   waid: handleWaid,
   ping: handlePing,
   info: handleInfo,
-  zabbix: handleZabbix,
+  zbx: handleZabbix,
   gp: handleGlobalping,
 };
 
