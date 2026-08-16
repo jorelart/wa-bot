@@ -49,6 +49,28 @@ export async function createPing(target, location) {
   }
 }
 
+export async function createTraceroute(target, location) {
+  const response = await globalping.post('/measurements', {
+    target,
+    type: 'traceroute',
+    locations: [
+      {
+        magic: location,
+        limit: 1,
+      },
+    ],
+  });
+
+  console.log('Globalping create traceroute:', {
+    status: response.status,
+    id: response.data?.id,
+    target,
+    location,
+  });
+
+  return response.data;
+}
+
 export async function getMeasurement(id) {
   try {
     const response = await globalping.get(
@@ -61,10 +83,10 @@ export async function getMeasurement(id) {
     );
 
     if (response.data?.status !== 'in-progress') {
-      console.log(
-        'Globalping final result:',
-        JSON.stringify(response.data, null, 2)
-      );
+    //   console.log(
+    //     'Globalping final result:',
+    //     JSON.stringify(response.data, null, 2)
+    //   );
     }
 
     return response.data;
