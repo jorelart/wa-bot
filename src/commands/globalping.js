@@ -6,28 +6,6 @@ import {
 
 export async function handleGlobalping({ reply, args }) {
   const subcommand = args[0]?.toLowerCase();
-  const target = args[1];
-  const probeCountRaw = args[args.length - 1];
-
-    const hasProbeCount =
-    /^\d+$/.test(probeCountRaw) &&
-    args.length >= 4;
-
-    const probeCount = hasProbeCount
-    ? Math.min(
-        Math.max(Number(probeCountRaw), 1),
-        5
-        )
-    : 3;
-
-    const locationEnd = hasProbeCount
-    ? args.length - 1
-    : args.length;
-
-    const location = args
-    .slice(2, locationEnd)
-    .join(' ')
-    .trim();
 
   if (!['ping', 'traceroute'].includes(subcommand)) {
     await reply(
@@ -36,13 +14,17 @@ export async function handleGlobalping({ reply, args }) {
         '',
         '*Command tersedia:*',
         '',
-        '`!gp ping <target> <location>`',
-        '`!gp traceroute <target> <location>`',
+        '`!gp ping <target> <location> [probe]`',
+        '`!gp traceroute <target> <location> [probe]`',
         '',
         '*Contoh:*',
         '`!gp ping 8.8.8.8 Pati`',
-        '`!gp ping 1.1.1.1 Jakarta`',
-        '`!gp traceroute 8.8.8.8 Singapore`',
+        '`!gp ping 8.8.8.8 Pati 5`',
+        '`!gp traceroute 1.1.1.1 Jakarta`',
+        '`!gp traceroute 1.1.1.1 Jakarta 3`',
+        '',
+        'Probe: 1-5',
+        'Default: 3',
       ].join('\n')
     );
 
@@ -50,11 +32,10 @@ export async function handleGlobalping({ reply, args }) {
   }
 
   const target = args[1];
-  const location = args.slice(2).join(' ').trim();
 
-  if (!target || !location) {
+  if (!target) {
     await reply(
-        [
+      [
         `🌐 *GLOBALPING ${subcommand.toUpperCase()}*`,
         '',
         'Format:',
@@ -66,40 +47,99 @@ export async function handleGlobalping({ reply, args }) {
         '',
         'Probe: 1-5',
         'Default: 3',
-        ].join('\n')
+      ].join('\n')
     );
 
     return;
-}
+  }
 
-if (subcommand === 'ping') {
-  await handlePing(
-    reply,
-    target,
-    location,
-    probeCount
+  /*
+   * Jika argument terakhir adalah angka,
+   * dianggap sebagai jumlah probe.
+   *
+   * Contoh:
+   *
+   * !gp ping 8.8.8.8 Pati
+   * !gp ping 8.8.8.8 Pati 5
+   *
+   * !gp ping 8.8.8.8 Jakarta Selatan 5
+   */
+
+  const lastArg = args[args.length - 1];
+
+  const hasProbeCount =
+    /^\d+$/.test(lastArg) &&
+    args.length >= 4;
+
+  const probeCount = hasProbeCount
+    ? Math.min(
+        Math.max(Number(lastArg), 1),
+        5
+      )
+    : 3;
+
+  const locationEnd = hasProbeCount
+    ? args.length - 1
+    : args.length;
+
+  const location = args
+    .slice(2, locationEnd)
+    .join(' ')
+    .trim();
+
+  if (!location) {
+    await reply(
+      [
+        `🌐 *GLOBALPING ${subcommand.toUpperCase()}*`,
+        '',
+        'Format:',
+        `\`!gp ${subcommand} <target> <location> [probe]\``,
+        '',
+        'Contoh:',
+        `\`!gp ${subcommand} 8.8.8.8 Pati\``,
+        `\`!gp ${subcommand} 8.8.8.8 Pati 5\``,
+        '',
+        'Probe: 1-5',
+        'Default: 3',
+      ].join('\n')
+    );
+
+    return;
+  }
+
+  console.log(
+    `Globalping ${subcommand}: target=${target}, location=${location}, probes=${probeCount}`
   );
 
-  return;
-}
+  if (subcommand === 'ping') {
+    await handlePing(
+      reply,
+      target,
+      location,
+      probeCount
+    );
 
-if (subcommand === 'traceroute') {
-  await handleTraceroute(
-    reply,
-    target,
-    location,
-    probeCount
-  );
+    return;
+  }
 
-  return;
+  if (subcommand === 'traceroute') {
+    await handleTraceroute(
+      reply,
+      target,
+      location,
+      probeCount
+    );
+
+    return;
+  }
 }
 
 async function handlePing(
-    reply,
-    target,
-    location,
-    probeCount
-    ) {
+  reply,
+  target,
+  location,
+  probeCount
+) {
   try {
     await reply(
       [
@@ -107,15 +147,21 @@ async function handlePing(
         '',
         `🎯 Target: *${target}*`,
         `📍 Location: *${location}*`,
+        `📡 Probes: *${probeCount}*`,
         '',
         '⏳ Menjalankan ping...',
       ].join('\n')
     );
 
     const measurement = await createPing(
-        target,
-        location,
-        probeCount
+      target,
+      location,
+      probeCount
+    );
+
+    console.log(
+      'Globalping create measurement:',
+      measurement
     );
 
     const measurementId = measurement.id;
@@ -128,6 +174,11 @@ async function handlePing(
 
     const result = await waitForMeasurement(
       measurementId
+    );
+
+    console.log(
+      'Globalping ping final result:',
+      JSON.stringify(result, null, 2)
     );
 
     await reply(
@@ -161,24 +212,34 @@ async function handlePing(
   }
 }
 
-async function handleTraceroute(reply, target, location, probeCount) {
+async function handleTraceroute(
+  reply,
+  target,
+  location,
+  probeCount
+) {
   try {
     await reply(
-        [
-            '🌐 *GLOBALPING TRACEROUTE*',
-            '',
-            `🎯 Target: *${target}*`,
-            `📍 Location: *${location}*`,
-            `📡 Probes: *${probeCount}*`,
-            '',
-            '⏳ Menjalankan traceroute...',
-        ].join('\n')
+      [
+        '🌐 *GLOBALPING TRACEROUTE*',
+        '',
+        `🎯 Target: *${target}*`,
+        `📍 Location: *${location}*`,
+        `📡 Probes: *${probeCount}*`,
+        '',
+        '⏳ Menjalankan traceroute...',
+      ].join('\n')
     );
 
     const measurement = await createTraceroute(
       target,
       location,
       probeCount
+    );
+
+    console.log(
+      'Globalping create traceroute:',
+      measurement
     );
 
     const measurementId = measurement.id;
@@ -233,8 +294,17 @@ async function waitForMeasurement(id) {
   const maxAttempts = 15;
   const interval = 1000;
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  for (
+    let attempt = 0;
+    attempt < maxAttempts;
+    attempt++
+  ) {
     const result = await getMeasurement(id);
+
+    console.log(
+      `Globalping measurement ${id}:`,
+      result.status
+    );
 
     if (
       result.status &&
@@ -246,14 +316,22 @@ async function waitForMeasurement(id) {
     await sleep(interval);
   }
 
-  throw new Error('Timeout menunggu hasil Globalping');
+  throw new Error(
+    'Timeout menunggu hasil Globalping'
+  );
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
 }
 
-function formatPingResult(data, target, location) {
+function formatPingResult(
+  data,
+  target,
+  location
+) {
   const results = data.results || [];
 
   if (!results.length) {
@@ -272,6 +350,7 @@ function formatPingResult(data, target, location) {
     '',
     `🎯 Target: *${target}*`,
     `📍 Requested: *${location}*`,
+    `📡 Probes: *${results.length}*`,
     '',
   ];
 
@@ -279,7 +358,8 @@ function formatPingResult(data, target, location) {
     const probe = item.probe || {};
     const result = item.result || {};
     const stats = result.stats || {};
-    const firstTiming = result.timings?.[0] || {};
+    const firstTiming =
+      result.timings?.[0] || {};
 
     const city = probe.city || '-';
     const country = probe.country || '-';
@@ -316,104 +396,115 @@ function formatPingResult(data, target, location) {
 }
 
 function formatTracerouteResult(
-    data,
-    target,
-    location
-    ) {
-    const results = data.results || [];
+  data,
+  target,
+  location
+) {
+  const results = data.results || [];
 
-    if (!results.length) {
-        return [
-        '❌ *GLOBALPING TRACEROUTE*',
-        '',
-        `🎯 Target: *${target}*`,
-        `📍 Location: *${location}*`,
-        '',
-        'Tidak ada hasil dari probe.',
-        ].join('\n');
-    }
+  if (!results.length) {
+    return [
+      '❌ *GLOBALPING TRACEROUTE*',
+      '',
+      `🎯 Target: *${target}*`,
+      `📍 Location: *${location}*`,
+      '',
+      'Tidak ada hasil dari probe.',
+    ].join('\n');
+  }
 
-    const lines = [
-        '🌐 *GLOBALPING TRACEROUTE*',
-        '',
-        `🎯 Target: *${target}*`,
-        `📍 Requested: *${location}*`,
-        `📡 Probes: *${results.length}*`,
-        '',
-    ];
+  const lines = [
+    '🌐 *GLOBALPING TRACEROUTE*',
+    '',
+    `🎯 Target: *${target}*`,
+    `📍 Requested: *${location}*`,
+    `📡 Probes: *${results.length}*`,
+    '',
+  ];
 
-    results.forEach((item, index) => {
-        const probe = item.probe || {};
-        const result = item.result || {};
+  results.forEach(
+    (item, index) => {
+      const probe = item.probe || {};
+      const result = item.result || {};
 
-        lines.push(
+      lines.push(
         `📡 *Probe ${index + 1}*`,
         `📍 ${probe.city || '-'}, ${probe.country || '-'}`,
         `🏢 ${probe.network || '-'}`,
         `ASN: ${probe.asn || '-'}`,
         ''
-        );
+      );
 
-        const hops = result.hops || [];
+      const hops = result.hops || [];
 
-        if (!hops.length) {
+      if (!hops.length) {
         lines.push(
-            '❌ Tidak ada hop.',
-            ''
+          '❌ Tidak ada hop.',
+          ''
         );
 
         return;
-        }
+      }
 
-        lines.push('*Route:*');
+      lines.push('*Route:*');
 
-        hops.forEach((hop, hopIndex) => {
-        const hostname =
+      hops.forEach(
+        (hop, hopIndex) => {
+          const hostname =
             hop.resolvedHostname || '*';
 
-        const address =
+          const address =
             hop.resolvedAddress || '-';
 
-        const timings = hop.timings || [];
+          const timings =
+            hop.timings || [];
 
-        const rtts = timings
-            .map(timing => timing.rtt)
+          const rtts = timings
+            .map(
+              timing => timing.rtt
+            )
             .filter(
-            value =>
+              value =>
                 value !== undefined &&
                 value !== null
             );
 
-        const avgRtt = rtts.length
+          const avgRtt = rtts.length
             ? rtts.reduce(
-                (sum, value) => sum + Number(value),
+                (sum, value) =>
+                  sum + Number(value),
                 0
-            ) / rtts.length
+              ) / rtts.length
             : null;
 
-        lines.push(
+          lines.push(
             `${hopIndex + 1}. ${hostname} (${address})${
-            avgRtt !== null
+              avgRtt !== null
                 ? ` — ${formatMs(avgRtt)}`
                 : ''
             }`
-        );
-        });
+          );
+        }
+      );
 
-        lines.push('');
-    });
-
-    if (data.id) {
-        lines.push(
-        `🔗 https://globalping.io?measurement=${data.id}`
-        );
+      lines.push('');
     }
+  );
 
-    return lines.join('\n').trim();
+  if (data.id) {
+    lines.push(
+      `🔗 https://globalping.io?measurement=${data.id}`
+    );
+  }
+
+  return lines.join('\n').trim();
 }
 
 function formatMs(value) {
-  if (value === undefined || value === null) {
+  if (
+    value === undefined ||
+    value === null
+  ) {
     return '-';
   }
 
