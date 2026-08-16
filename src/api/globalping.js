@@ -15,25 +15,59 @@ const globalping = createHttpClient({
 });
 
 export async function createPing(target, location) {
-  const response = await globalping.post('/measurements', {
-    target,
-    type: 'ping',
-    locations: [
-      {
-        magic: location,
-        limit: 1,
+  try {
+    const response = await globalping.post('/measurements', {
+      target,
+      type: 'ping',
+      locations: [
+        {
+          magic: location,
+          limit: 1,
+        },
+      ],
+      measurementOptions: {
+        packets: 4,
       },
-    ],
-    measurementOptions: {
-      packets: 4,
-    },
-  });
+    });
 
-  return response.data;
+    console.log('Globalping create measurement:', {
+      status: response.status,
+      id: response.data?.id,
+      target,
+      location,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Globalping create measurement error:',
+      error.response?.status || error.message,
+      error.response?.data || ''
+    );
+
+    throw error;
+  }
 }
 
 export async function getMeasurement(id) {
-  const response = await globalping.get(`/measurements/${id}`);
+  try {
+    const response = await globalping.get(
+      `/measurements/${id}`
+    );
 
-  return response.data;
+    console.log(
+      `Globalping measurement ${id}:`,
+      response.data?.status
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Globalping get measurement error [${id}]:`,
+      error.response?.status || error.message,
+      error.response?.data || ''
+    );
+
+    throw error;
+  }
 }
