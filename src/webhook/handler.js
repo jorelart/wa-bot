@@ -32,31 +32,29 @@ function extractMessageText(data) {
   return null;
 }
 
+function getMentionedJids(data) {
+  return data?.contextInfo?.mentionedJid || [];
+}
+
 function isBotMentioned(data) {
-  const mentionedJid =
-    data?.message?.contextInfo?.mentionedJid;
+  const mentionedJid = getMentionedJids(data);
 
-  if (!Array.isArray(mentionedJid)) {
-    return false;
-  }
-
-  return mentionedJid.includes(config.bot.lid);
+  return (
+    Array.isArray(mentionedJid) &&
+    mentionedJid.includes(config.bot.lid)
+  );
 }
 
 function removeBotMention(text, data) {
-  const mentionedJid =
-    data?.message?.contextInfo?.mentionedJid;
-
-  if (!Array.isArray(mentionedJid)) {
+  if (!isBotMentioned(data)) {
     return text;
   }
 
-  if (!mentionedJid.includes(config.bot.lid)) {
-    return text;
-  }
+  // WhatsApp mengirim mention sebagai @<LID>
+  const botLid = config.bot.lid.split('@')[0];
 
   return text
-    .replace(/^@\d+\s*/, '')
+    .replace(new RegExp(`@${botLid}\\s*`, 'i'), '')
     .trim();
 }
 
@@ -78,7 +76,6 @@ export async function handleWebhook(payload) {
   }
 
   const data = payload.data;
-  console.log(JSON.stringify(data, null, 2));
 
   if (!data) {
     return;
@@ -104,12 +101,28 @@ export async function handleWebhook(payload) {
   }
 
   const isGroup = chatId.endsWith('@g.us');
+  const mentioned = isBotMentioned(data);
 
-  // Di group, bot hanya merespons jika di-mention
-  if (isGroup && !isBotMentioned(data)) {
+  /*
+   * GROUP:
+   * Bot hanya merespons jika di-mention.
+   *
+   * PRIVATE:
+   * Bot langsung merespons tanpa mention.
+   */
+  if (isGroup && !mentioned) {
     return;
   }
 
+  /*
+   * Contoh:
+   *
+   * @87970057089061 !ping
+   *
+   * menjadi:
+   *
+   * !ping
+   */
   const text = removeBotMention(message.trim(), data);
 
   if (!text.startsWith('!')) {
@@ -124,49 +137,33 @@ export async function handleWebhook(payload) {
     return;
   }
 
-  /*
-   * Semua command mendapatkan fungsi reply.
-   *
-   * Contoh:
-   * await reply('Pong!');
-   *
-   * reply otomatis akan mencoba membalas
-   * pesan WhatsApp yang menjadi trigger command.
-   */
   const reply = async (replyText) => {
     return sendReply(chatId, replyText, data);
   };
 
   const context = {
-  chatId,
+    chatId,
 
-  sender:
-    key.participantAlt ||
-    key.participant ||
-    key.remoteJid,
+    sender:
+      key.participantAlt ||
+      key.participant ||
+      key.remoteJid,
 
-  isGroup,
+    isGroup,
 
-  command,
+    command,
     args: parts,
     rawMessage: text,
     payload,
 
-    // Fungsi reply terpusat
     reply,
 
-    // Tetap tersedia jika suatu saat command
-    // membutuhkan data webhook asli.
     quoted: data,
   };
 
   console.log(
-  `Command: !${command} | Chat: ${chatId} | Group: ${isGroup} | Mentioned: ${isBotMentioned(data)} | Sender: ${context.sender}`
-);
-
-  // console.log(
-  //   `Command: !${command} | Chat: ${chatId} | Sender: ${context.sender}`
-  // );
+    `Command: !${command} | Chat: ${chatId} | Group: ${isGroup} | Mentioned: ${mentioned} | Sender: ${context.sender}`
+  );
 
   try {
     const handled = await handleCommand(
