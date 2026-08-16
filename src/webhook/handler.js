@@ -1,6 +1,7 @@
 import { handleCommand } from '../commands/index.js';
 import { sendReply } from '../api/evolution.js';
 import { config } from '../config.js';
+import { isBotMessage } from '../utils/bot-messages.js';
 
 function extractMessageText(data) {
   const message = data?.message;
@@ -43,6 +44,22 @@ function isBotMentioned(data) {
     Array.isArray(mentionedJid) &&
     mentionedJid.includes(config.bot.lid)
   );
+}
+
+function isReplyToBot(data) {
+  const contextInfo = data?.contextInfo;
+
+  if (!contextInfo) {
+    return false;
+  }
+
+  const quotedMessageId = contextInfo.stanzaId;
+
+  if (!quotedMessageId) {
+    return false;
+  }
+
+  return isBotMessage(quotedMessageId);
 }
 
 function removeBotMention(text, data) {
@@ -110,7 +127,13 @@ export async function handleWebhook(payload) {
    * PRIVATE:
    * Bot langsung merespons tanpa mention.
    */
-  if (isGroup && !mentioned) {
+  const repliedToBot = isReplyToBot(data);
+
+  if (
+    isGroup &&
+    !mentioned &&
+    !repliedToBot
+  ) {
     return;
   }
 
@@ -162,7 +185,7 @@ export async function handleWebhook(payload) {
   };
 
   console.log(
-    `Command: !${command} | Chat: ${chatId} | Group: ${isGroup} | Mentioned: ${mentioned} | Sender: ${context.sender}`
+    `Command: !${command} | Chat: ${chatId} | Group: ${isGroup} | Mentioned: ${mentioned} | ReplyToBot: ${repliedToBot} | Sender: ${context.sender}`
   );
 
   try {

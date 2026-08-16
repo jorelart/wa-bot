@@ -1,5 +1,6 @@
 import { createHttpClient } from './http.js';
 import { config } from '../config.js';
+import { rememberBotMessage } from '../utils/bot-messages.js';
 
 const evolution = createHttpClient({
   baseURL: config.evolution.url,
@@ -16,6 +17,10 @@ export async function sendMessage(number, text) {
         number,
         text,
       }
+    );
+
+    rememberBotMessage(
+      response.data?.key?.id
     );
 
     return response.data;
@@ -39,6 +44,15 @@ export async function sendReply(number, text, originalMessage) {
         text,
         quoted: originalMessage,
       }
+    );
+
+    console.log(
+      'Bot message sent:',
+      response.data?.key?.id
+    );
+
+    rememberBotMessage(
+      response.data?.key?.id
     );
 
     return response.data;
