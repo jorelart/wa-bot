@@ -60,6 +60,13 @@ export async function getMeasurement(id) {
       response.data?.status
     );
 
+    if (response.data?.status !== 'in-progress') {
+      console.log(
+        'Globalping final result:',
+        JSON.stringify(response.data, null, 2)
+      );
+    }
+
     return response.data;
   } catch (error) {
     console.error(
