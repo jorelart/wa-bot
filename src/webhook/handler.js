@@ -49,6 +49,7 @@ export async function handleWebhook(payload) {
   }
 
   const data = payload.data;
+  console.log(JSON.stringify(data, null, 2));
 
   if (!data) {
     return;
