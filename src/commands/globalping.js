@@ -643,7 +643,6 @@ function formatDnsResult(
 
     lines.push(
       `📡 *Probe ${index + 1}*`,
-      `ID: ${probeId}`,
       `📍 ${city}, ${country}`,
       `🏢 ${network}`,
       `ASN: ${asn}`,
