@@ -413,11 +413,7 @@ function sleep(ms) {
   });
 }
 
-function formatPingResult(
-  data,
-  target,
-  location
-) {
+function formatPingResult(data, target, location) {
   const results = data.results || [];
 
   if (!results.length) {
@@ -428,50 +424,55 @@ function formatPingResult(
       `📍 Location: *${location}*`,
       '',
       'Tidak ada hasil dari probe.',
-    ].join('\n');
+      '',
+      data.id
+        ? `🔗 https://globalping.io?measurement=${data.id}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
-  const lines = [
-    '🌐 *GLOBALPING PING*',
-    '',
-    `🎯 Target: *${target}*`,
-    `📍 Requested: *${location}*`,
-    `📡 Probes: *${results.length}*`,
-    '',
-  ];
+  const lines = [];
 
-  for (const item of results) {
+  results.forEach((item, index) => {
     const probe = item.probe || {};
     const result = item.result || {};
-    const stats = result.stats || {};
-    const firstTiming =
-      result.timings?.[0] || {};
 
     const city = probe.city || '-';
     const country = probe.country || '-';
-    const asn = probe.asn || '-';
+
+    const asn = probe.asn
+      ? `AS${probe.asn}`
+      : '-';
+
     const network = probe.network || '-';
 
-    const total = stats.total ?? '-';
-    const received = stats.rcv ?? '-';
-    const loss = stats.loss ?? '-';
-    const ttl = firstTiming.ttl ?? '-';
-
     lines.push(
-      `📡 *${city}, ${country}*`,
-      `🏢 ${network}`,
-      `ASN: ${asn}`,
-      '',
-      `📦 Packets: ${received}/${total}`,
-      `📉 Loss: ${loss}%`,
-      `⚡ Min: ${formatMs(stats.min)}`,
-      `📊 Avg: ${formatMs(stats.avg)}`,
-      `📈 Max: ${formatMs(stats.max)}`,
-      `⏱ TTL: ${ttl}`,
+      `🌍 ${city}, ${country}`,
+      `📡 ${asn} (${network})`,
       ''
     );
-  }
 
+    if (result.rawOutput) {
+      lines.push(
+        result.rawOutput.trim(),
+        ''
+      );
+    } else {
+      lines.push(
+        '❌ Raw ping result tidak tersedia.',
+        ''
+      );
+    }
+
+    // Pemisah antar probe
+    if (index < results.length - 1) {
+      lines.push('---', '');
+    }
+  });
+
+  // Link measurement hanya satu kali di bagian paling bawah
   if (data.id) {
     lines.push(
       `🔗 https://globalping.io?measurement=${data.id}`
@@ -499,83 +500,41 @@ function formatTracerouteResult(
     ].join('\n');
   }
 
-  const lines = [
-    '🌐 *GLOBALPING TRACEROUTE*',
-    '',
-    `🎯 Target: *${target}*`,
-    `📍 Requested: *${location}*`,
-    `📡 Probes: *${results.length}*`,
-    '',
-  ];
+  const lines = [];
 
-  results.forEach(
-    (item, index) => {
-      const probe = item.probe || {};
-      const result = item.result || {};
+  for (const item of results) {
+    const probe = item.probe || {};
+    const result = item.result || {};
 
+    const city = probe.city || '-';
+    const country = probe.country || '-';
+
+    const asn = probe.asn
+      ? `AS${probe.asn}`
+      : '-';
+
+    const network = probe.network || '-';
+
+    lines.push(
+      `🌍 ${city}, ${country}`,
+      `📡 ${asn} (${network})`,
+      ''
+    );
+
+    if (result.rawOutput) {
       lines.push(
-        `📡 *Probe ${index + 1}*`,
-        `📍 ${probe.city || '-'}, ${probe.country || '-'}`,
-        `🏢 ${probe.network || '-'}`,
-        `ASN: ${probe.asn || '-'}`,
+        result.rawOutput.trim(),
         ''
       );
-
-      const hops = result.hops || [];
-
-      if (!hops.length) {
-        lines.push(
-          '❌ Tidak ada hop.',
-          ''
-        );
-
-        return;
-      }
-
-      lines.push('*Route:*');
-
-      hops.forEach(
-        (hop, hopIndex) => {
-          const hostname =
-            hop.resolvedHostname || '*';
-
-          const address =
-            hop.resolvedAddress || '-';
-
-          const timings =
-            hop.timings || [];
-
-          const rtts = timings
-            .map(
-              timing => timing.rtt
-            )
-            .filter(
-              value =>
-                value !== undefined &&
-                value !== null
-            );
-
-          const avgRtt = rtts.length
-            ? rtts.reduce(
-                (sum, value) =>
-                  sum + Number(value),
-                0
-              ) / rtts.length
-            : null;
-
-          lines.push(
-            `${hopIndex + 1}. ${hostname} (${address})${
-              avgRtt !== null
-                ? ` — ${formatMs(avgRtt)}`
-                : ''
-            }`
-          );
-        }
+    } else {
+      lines.push(
+        '❌ Tidak ada output traceroute.',
+        ''
       );
-
-      lines.push('');
     }
-  );
+
+    lines.push('---', '');
+  }
 
   if (data.id) {
     lines.push(
