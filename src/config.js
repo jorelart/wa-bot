@@ -1,15 +1,3 @@
-import 'dotenv/config';
-
-function required(name) {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
-
 export const config = {
   port: Number(process.env.PORT || 3000),
 
@@ -22,5 +10,10 @@ export const config = {
   zabbix: {
     url: required('ZABBIX_API_URL'),
     token: required('ZABBIX_API_TOKEN'),
+  },
+
+  globalping: {
+    url: process.env.GLOBALPING_API_URL || 'https://api.globalping.io/v1',
+    apiKey: process.env.GLOBALPING_API_KEY || '',
   },
 };
