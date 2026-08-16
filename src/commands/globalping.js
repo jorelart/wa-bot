@@ -1,13 +1,14 @@
 import {
   createPing,
   createTraceroute,
+  createDns,
   getMeasurement,
 } from '../api/globalping.js';
 
 export async function handleGlobalping({ reply, args }) {
   const subcommand = args[0]?.toLowerCase();
 
-  if (!['ping', 'traceroute'].includes(subcommand)) {
+  if (!['ping', 'traceroute', 'dns'].includes(subcommand)) {
     await reply(
       [
         '🌐 *GLOBALPING*',
@@ -16,12 +17,15 @@ export async function handleGlobalping({ reply, args }) {
         '',
         '`!gp ping <target> <location> [probe]`',
         '`!gp traceroute <target> <location> [probe]`',
+        '`!gp dns <target> <location> [probe]`',
         '',
         '*Contoh:*',
         '`!gp ping 8.8.8.8 Pati`',
         '`!gp ping 8.8.8.8 Pati 5`',
         '`!gp traceroute 1.1.1.1 Jakarta`',
         '`!gp traceroute 1.1.1.1 Jakarta 3`',
+        '`!gp dns google.com Jakarta`',
+        '`!gp dns google.com Jakarta 5`',
         '',
         'Probe: 1-5',
         'Default: 3',
@@ -132,6 +136,16 @@ export async function handleGlobalping({ reply, args }) {
 
     return;
   }
+  if (subcommand === 'dns') {
+    await handleDns(
+        reply,
+        target,
+        location,
+        probeCount
+    );
+
+    return;
+}
 }
 
 async function handlePing(
@@ -280,6 +294,79 @@ async function handleTraceroute(
         `📍 Location: *${location}*`,
         '',
         'Gagal menjalankan traceroute.',
+        '',
+        `Error: ${
+          error.response?.data?.error?.message ||
+          error.message
+        }`,
+      ].join('\n')
+    );
+  }
+}
+
+async function handleDns(
+  reply,
+  target,
+  location,
+  probeCount
+) {
+  try {
+    await reply(
+      [
+        '🌐 *GLOBALPING DNS*',
+        '',
+        `🎯 Target: *${target}*`,
+        `📍 Location: *${location}*`,
+        `📡 Probes: *${probeCount}*`,
+        '',
+        '⏳ Menjalankan DNS lookup...',
+      ].join('\n')
+    );
+
+    const measurement = await createDns(
+      target,
+      location,
+      probeCount
+    );
+
+    const measurementId = measurement.id;
+
+    if (!measurementId) {
+      throw new Error(
+        'Globalping tidak mengembalikan measurement ID'
+      );
+    }
+
+    const result = await waitForMeasurement(
+      measurementId
+    );
+
+    console.log(
+      'Globalping DNS final result:',
+      JSON.stringify(result, null, 2)
+    );
+
+    await reply(
+      formatDnsResult(
+        result,
+        target,
+        location
+      )
+    );
+  } catch (error) {
+    console.error(
+      'Globalping DNS error:',
+      error
+    );
+
+    await reply(
+      [
+        '❌ *GLOBALPING DNS*',
+        '',
+        `🎯 Target: *${target}*`,
+        `📍 Location: *${location}*`,
+        '',
+        'Gagal menjalankan DNS lookup.',
         '',
         `Error: ${
           error.response?.data?.error?.message ||
@@ -490,6 +577,54 @@ function formatTracerouteResult(
       lines.push('');
     }
   );
+
+  if (data.id) {
+    lines.push(
+      `🔗 https://globalping.io?measurement=${data.id}`
+    );
+  }
+
+  return lines.join('\n').trim();
+}
+
+function formatDnsResult(
+  data,
+  target,
+  location
+) {
+  const results = data.results || [];
+
+  if (!results.length) {
+    return [
+      '❌ *GLOBALPING DNS*',
+      '',
+      `🎯 Target: *${target}*`,
+      `📍 Location: *${location}*`,
+      '',
+      'Tidak ada hasil dari probe.',
+    ].join('\n');
+  }
+
+  const lines = [
+    '🌐 *GLOBALPING DNS*',
+    '',
+    `🎯 Target: *${target}*`,
+    `📍 Requested: *${location}*`,
+    `📡 Probes: *${results.length}*`,
+    '',
+  ];
+
+  results.forEach((item, index) => {
+    const probe = item.probe || {};
+    const result = item.result || {};
+
+    lines.push(
+      `Probe ${index + 1}: ${probe.city || '-'}, ${probe.country || '-'}`,
+      `ASN: ${probe.asn || '-'}`,
+      `Status: ${result.status || '-'}`,
+      ''
+    );
+  });
 
   if (data.id) {
     lines.push(

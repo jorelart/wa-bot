@@ -14,7 +14,11 @@ const globalping = createHttpClient({
   headers,
 });
 
-export async function createPing(target, location, probeCount = 3) {
+export async function createPing(
+  target,
+  location,
+  probeCount = 3
+) {
   const response = await globalping.post('/measurements', {
     target,
     type: 'ping',
@@ -27,14 +31,6 @@ export async function createPing(target, location, probeCount = 3) {
     measurementOptions: {
       packets: 4,
     },
-  });
-
-  console.log('Globalping create measurement:', {
-    status: response.status,
-    id: response.data?.id,
-    target,
-    location,
-    probeCount,
   });
 
   return response.data;
@@ -56,43 +52,32 @@ export async function createTraceroute(
     ],
   });
 
-  console.log('Globalping create traceroute:', {
-    status: response.status,
-    id: response.data?.id,
+  return response.data;
+}
+
+export async function createDns(
+  target,
+  location,
+  probeCount = 3
+) {
+  const response = await globalping.post('/measurements', {
     target,
-    location,
-    probeCount,
+    type: 'dns',
+    locations: [
+      {
+        magic: location,
+        limit: probeCount,
+      },
+    ],
   });
 
   return response.data;
 }
 
 export async function getMeasurement(id) {
-  try {
-    const response = await globalping.get(
-      `/measurements/${id}`
-    );
+  const response = await globalping.get(
+    `/measurements/${id}`
+  );
 
-    console.log(
-      `Globalping measurement ${id}:`,
-      response.data?.status
-    );
-
-    if (response.data?.status !== 'in-progress') {
-    //   console.log(
-    //     'Globalping final result:',
-    //     JSON.stringify(response.data, null, 2)
-    //   );
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error(
-      `Globalping get measurement error [${id}]:`,
-      error.response?.status || error.message,
-      error.response?.data || ''
-    );
-
-    throw error;
-  }
+  return response.data;
 }
