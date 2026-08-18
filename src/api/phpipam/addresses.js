@@ -39,52 +39,71 @@ export async function getAddress(ip, subnetId) {
 
 export async function searchHostname(keyword) {
   const cleanKeyword = keyword.trim();
+  
+  // Buat pola Regex cerdas dari input user
+  // Contoh: input "R.JAM" atau "R JAM" -> diubah jadi /R.*JAM/i (Case-insensitive & mengabaikan spasi/titik)
+  const regexPattern = cleanKeyword.split(/[\s\-_.]+/).filter(w => w.length > 0).join('.*');
+  const regex = new RegExp(regexPattern, 'i');
 
-  // STRATEGI 1: Pencarian Persis (Bawaan phpIPAM)
+  let foundAddresses = [];
+
+  // STRATEGI 1: Pencarian Persis (Endpoint Bawaan)
   try {
-    const response = await get(`addresses/search_hostname/${encodeURIComponent(cleanKeyword)}/`);
-    if (response.data && response.data.length > 0) {
-      return await processAddressesHierarchy(response.data);
+    const res1 = await get(`addresses/search_hostname/${encodeURIComponent(cleanKeyword)}/`);
+    if (res1.data && res1.data.length > 0) {
+      foundAddresses = res1.data;
     }
-  } catch (err) {
-    // Abaikan jika 404, lanjut ke Strategi 2
+  } catch (err) {}
+
+  // STRATEGI 2: Pencarian Generic (Kadang API phpIPAM bisa matching sebagian di sini)
+  if (foundAddresses.length === 0) {
+    try {
+      const res2 = await get(`addresses/search/${encodeURIComponent(cleanKeyword)}/`);
+      if (res2.data && res2.data.length > 0) {
+        foundAddresses = res2.data;
+      }
+    } catch (err) {}
   }
 
-  // STRATEGI 2: Pencarian SUPER FLEXIBLE (Regex/Fuzzy di sisi Node.js)
-  // Memecah input user (Misal: "r jamiul" menjadi ["r", "jamiul"])
-  const words = cleanKeyword.split(/[\s\-_.]+/).filter(w => w.length > 0);
-  
-  // Cari kata terpanjang untuk dijadikan "jangkar" query ke phpIPAM agar tidak menarik terlalu banyak data
-  const mainWord = words.sort((a, b) => b.length - a.length)[0];
+  // STRATEGI 3: ULTIMATE FALLBACK (Ambil data berdasarkan Tag IP lalu filter pakai Regex)
+  // Tag ID phpIPAM: 2 (Used), 3 (Reserved), 4 (DHCP)
+  if (foundAddresses.length === 0) {
+    try {
+      // Tarik data paralel agar sangat cepat
+      const [tag2Res, tag3Res, tag4Res] = await Promise.all([
+        get(`addresses/tags/2/`).catch(() => ({ data: [] })),
+        get(`addresses/tags/3/`).catch(() => ({ data: [] })),
+        get(`addresses/tags/4/`).catch(() => ({ data: [] }))
+      ]);
+      
+      const allAddresses = [
+        ...(tag2Res.data || []),
+        ...(tag3Res.data || []),
+        ...(tag4Res.data || [])
+      ];
 
-  if (!mainWord) return [];
-
-  try {
-    // Tarik data besar menggunakan kata jangkar
-    const fallbackRes = await get(`addresses/search_hostname/${encodeURIComponent(mainWord)}/`);
-    let results = fallbackRes.data || [];
-
-    if (results.length > 0) {
-      // Buat pola Regex dari input asli user. 
-      // Contoh: "r jamiul" -> Regex: /r.*jamiul/i (Mencari 'r' diikuti apapun lalu 'jamiul')
-      const regexPattern = words.join('.*');
-      const regex = new RegExp(regexPattern, 'i');
-
-      // Filter menggunakan Regex Node.js
-      results = results.filter(item => {
+      // Saring SEMUA IP menggunakan Regex yang kita buat di atas
+      foundAddresses = allAddresses.filter(item => {
         const h = item.hostname || '';
         const d = item.description || '';
-        // Cek apakah pola cocok di Hostname ATAU Description
+        // Cocokkan hostname ATAU description
         return regex.test(h) || regex.test(d);
       });
+    } catch (err) {}
+  }
 
-      if (results.length > 0) {
-        return await processAddressesHierarchy(results);
-      }
-    }
-  } catch (err) {
-    if (err.response?.status === 404 || err.response?.data?.code === 404) return [];
-    throw err;
+  // Jika hasil akhirnya ketemu (dari strategi mana pun)
+  if (foundAddresses.length > 0) {
+    // Validasi ulang dengan regex untuk membuang false-positive dari Strategi 1/2
+    const finalMatched = foundAddresses.filter(item => {
+       const h = item.hostname || '';
+       const d = item.description || '';
+       return regex.test(h) || regex.test(d);
+    });
+
+    // Batasi 10 hasil teratas agar bot tidak melambat saat mencari hierarki parent subnet
+    const limitedResults = finalMatched.slice(0, 10);
+    return await processAddressesHierarchy(limitedResults);
   }
 
   return [];
