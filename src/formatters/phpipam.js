@@ -1,16 +1,8 @@
-// Status Icon untuk IP
-function statusIcon(status) {
-  switch (String(status)) {
-    case '1':
-      return '🔴 Used';
-    case '2':
-      return '🟢 Reserved';
-    default:
-      return '⚪ Unknown';
-  }
-}
+import { config } from '../config.js';
 
-// 1. Formatter Hasil Pencarian IP
+// Buat URL dasar Web phpIPAM (mengubah URL API ke URL Web)
+const BASE_WEB_URL = config.phpipam.url.split('/api')[0]; 
+
 export function formatAddresses(addresses) {
   if (!addresses?.length) {
     return '📡 *IPAM*\n\nTidak ditemukan IP address.';
@@ -21,13 +13,20 @@ export function formatAddresses(addresses) {
   addresses.forEach((item) => {
     lines.push(`Hostname : ${item.hostname || '-'} (${item.ip || '-'})`);
     lines.push(`Desc : ${item.description || '-'}`);
-    
-    // Tampilkan informasi Subnet jika tersedia dari addresses.js
-    if (item.subnetInfo) {
-      const sub = item.subnetInfo;
-      const subnetCidr = `${sub.subnet}/${sub.mask}`;
-      const subnetDesc = sub.description ? ` (${sub.description})` : '';
-      lines.push(`Subnet : ${subnetCidr}${subnetDesc}`);
+
+    // Tampilkan Hierarki Subnet jika ada
+    if (item.subnetsHierarchy && item.subnetsHierarchy.length > 0) {
+      item.subnetsHierarchy.forEach((sub) => {
+        const cidr = `${sub.subnet}/${sub.mask}`;
+        const desc = sub.description ? ` (${sub.description})` : '';
+        lines.push(`Subnet : ${cidr}${desc}`);
+      });
+
+      // Ambil ID subnet terkecil (paling spesifik) untuk buat link langsung
+      const lowestSubnet = item.subnetsHierarchy[item.subnetsHierarchy.length - 1];
+      const directLink = `${BASE_WEB_URL}/index.php?page=subnets&section=${lowestSubnet.sectionId}&subnetId=${lowestSubnet.id}`;
+      
+      lines.push(`Link : ${directLink}`);
     } else {
       lines.push(`Subnet : -`);
     }
@@ -38,22 +37,20 @@ export function formatAddresses(addresses) {
   return lines.join('\n').trim();
 }
 
-// 2. Formatter List Subnet (!ipam subnet <cidr>)
 export function formatSubnets(subnets) {
   if (!subnets?.length) {
     return '📡 *IPAM SUBNET*\n\nSubnet tidak ditemukan.';
   }
 
-  const lines = [
-    '📡 *IPAM SUBNET*',
-    '',
-  ];
+  const lines = ['📡 *IPAM SUBNET*', ''];
 
   subnets.slice(0, 10).forEach((subnet, index) => {
+    const directLink = `${BASE_WEB_URL}/index.php?page=subnets&section=${subnet.sectionId}&subnetId=${subnet.id}`;
     lines.push(
       `${index + 1}. *${subnet.subnet}/${subnet.mask}*`,
       `ID: ${subnet.id}`,
       `Name: ${subnet.description || '-'}`,
+      `Link: ${directLink}`,
       ''
     );
   });
@@ -61,7 +58,6 @@ export function formatSubnets(subnets) {
   return lines.join('\n').trim();
 }
 
-// 3. Formatter Penggunaan Subnet (!ipam usage <cidr>)
 export function formatSubnetUsage(subnet, usage) {
   const total = Number(usage?.total || 0);
   const used = Number(usage?.used || 0);
@@ -71,6 +67,8 @@ export function formatSubnetUsage(subnet, usage) {
     total > 0
       ? ((used / total) * 100).toFixed(1)
       : '0.0';
+
+  const directLink = `${BASE_WEB_URL}/index.php?page=subnets&section=${subnet.sectionId}&subnetId=${subnet.id}`;
 
   return [
     '📡 *IPAM USAGE*',
@@ -82,5 +80,7 @@ export function formatSubnetUsage(subnet, usage) {
     `Used: ${used}`,
     `Free: ${free}`,
     `Usage: *${percentage}%*`,
+    '',
+    `Link: ${directLink}`,
   ].join('\n');
 }
