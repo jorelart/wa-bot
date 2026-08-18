@@ -62,6 +62,9 @@ export async function handleIpam({ reply, args }) {
       return;
     }
 
+    // --- TAMBAHKAN PESAN LOADING DI SINI ---
+    await reply('⏳ _Searching for the host, please wait a moment..._');
+
     try {
       const addresses = await searchHostname(param);
       await reply(formatAddresses(addresses));
