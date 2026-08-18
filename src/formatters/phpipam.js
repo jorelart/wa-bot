@@ -17,9 +17,12 @@ export function formatAddresses(addresses) {
     // Tampilkan Hierarki Subnet jika ada
     if (item.subnetsHierarchy && item.subnetsHierarchy.length > 0) {
       item.subnetsHierarchy.forEach((sub) => {
-        const cidr = `${sub.subnet}/${sub.mask}`;
-        const desc = sub.description ? ` (${sub.description})` : '';
-        lines.push(`Subnet : ${cidr}${desc}`);
+        // Cek jika subnet dan mask benar-benar ada
+        if (sub.subnet && sub.mask) {
+          const cidr = `${sub.subnet}/${sub.mask}`;
+          const desc = sub.description ? ` (${sub.description})` : '';
+          lines.push(`Subnet : ${cidr}${desc}`);
+        }
       });
 
       // Ambil ID subnet terkecil (paling spesifik) untuk buat link langsung

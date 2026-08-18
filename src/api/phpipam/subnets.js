@@ -26,23 +26,26 @@ export async function getFirstFreeIp(subnetId) {
 }
 
 // === FUNGSI BARU: Ambil semua hierarki subnet ke atas (Parent/Master) ===
+// === FUNGSI: Ambil semua hierarki subnet ke atas (Parent/Master) ===
 export async function getSubnetHierarchy(subnetId) {
   const hierarchy = [];
   let currentId = subnetId;
-
-  // Batasi maksimal 5 level kedalaman agar tidak terjadi infinite loop
   let depth = 0;
-  while (currentId && currentId !== '0' && depth < 5) {
+
+  // Hentikan loop jika currentId bernilai '0', 0, null, atau undefined
+  while (currentId && currentId !== '0' && currentId !== 0 && depth < 5) {
     try {
       const subnet = await getSubnet(currentId);
-      if (subnet) {
-        hierarchy.unshift(subnet); // Masukkan di depan agar urutan dari Parent terbesar ke Child terkecil
+      
+      // Pastikan objek subnet valid dan memiliki properti subnet/mask
+      if (subnet && subnet.subnet !== undefined && subnet.mask !== undefined) {
+        hierarchy.unshift(subnet); // Tambahkan ke urutan atas
         currentId = subnet.masterSubnetId;
       } else {
-        break;
+        break; // Stop jika data subnet tidak valid
       }
     } catch (err) {
-      break;
+      break; // Stop jika API error/404
     }
     depth++;
   }
