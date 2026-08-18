@@ -91,7 +91,7 @@ export async function handleIpam({ reply, args }) {
     return;
   }
 
-  // 5. !ipam usage <subnet>
+ // 5. !ipam usage <subnet>
   if (subcommand === 'usage') {
     if (!param) {
       await reply('📡 *IPAM USAGE*\n\nFormat: `!ipam usage <subnet>`\nContoh: `!ipam usage 103.80.81.0/24`');
@@ -185,26 +185,9 @@ export async function handleIpam({ reply, args }) {
   await reply(
     [
       '📡 *IPAM*',
-      '',
       '*Command tersedia:*',
       '',
-      '• `!ipam search <ip>`',
-      '• `!ipam host <hostname>`',
-      '• `!ipam subnet <subnet>`',
-      '• `!ipam usage <subnet>`',
-      '• `!ipam free <subnet>`',
-    ].join('\n')
-  );
-}
-
-  // Fallback bantuan jika subcommand salah
-  await reply(
-    [
-      '📡 *IPAM*',
-      '',
-      '*Command tersedia:*',
-      '',
-      '• `!ipam search <ip>`',
+      '• `!ipam ip <ip>`',
       '• `!ipam host <hostname>`',
       '• `!ipam subnet <subnet>`',
       '• `!ipam usage <subnet>`',
