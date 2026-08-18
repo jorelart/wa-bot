@@ -5,9 +5,9 @@ export async function handleHelp({ reply }) {
     '📱 !waid',
     '❓ !help',
     'ℹ️ !info',
-    '📊 !zbx _(Zabbix API)_',
-    '🌐 !gp _(Globalping API)_',
-    '📡 !ipam _(phpIPAM API)_',
+    '📊 !zbx `Zabbix API)`',
+    '🌐 !gp `Globalping API)`',
+    '📡 !ipam `phpIPAM API)`',
     '',
   ].join('\n');
 
