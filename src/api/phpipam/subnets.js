@@ -34,53 +34,40 @@ export async function searchSubnet(cidrInput) {
   const cleanInput = cidrInput.trim();
   const [ipPart, maskPart] = cleanInput.split('/');
 
-  // Strategy 1: Cari via endpoint subnets/search (menggunakan IP murni tanpa /mask)
+  console.log('=== [DEBUG PHPIPAM API SUBNET] ===');
+  console.log('Input CIDR:', cleanInput);
+  console.log('IP Part:', ipPart, '| Mask Part:', maskPart);
+
+  // Tes 1: Endpoint subnets/cidr/
   try {
-    const response = await get(`subnets/search/${encodeURIComponent(ipPart)}/`);
-    let results = response.data || [];
+    const url = `subnets/cidr/${encodeURIComponent(cleanInput)}/`;
+    console.log('[TEST 1] GET:', url);
+    const res = await get(url);
+    console.log('[TEST 1] Response Data:', JSON.stringify(res.data));
+  } catch (err) {
+    console.log('[TEST 1] Error Status:', err.response?.status, '| Message:', err.response?.data?.message || err.message);
+  }
 
-    if (Array.isArray(results) && results.length > 0) {
-      results = results.map(normalizeSubnet);
-
-      // Jika user menyertakan subnet mask (misal /24), filter hasil yang cocok
-      if (maskPart) {
-        const filtered = results.filter(
-          (s) => String(s.mask) === String(maskPart)
-        );
-        if (filtered.length > 0) return filtered;
-      }
-
-      return results;
-    }
-  } catch (err) {}
-
-  // Strategy 2: Cari via endpoint custom/pencarian IP terdekat jika input berakhiran .0
+  // Tes 2: Endpoint subnets/search/
   try {
-    // Jika input 103.80.83.0, tes cari IP 103.80.83.1 di phpIPAM untuk mengambil subnetId-nya
-    const sampleIp = ipPart.endsWith('.0') 
-      ? ipPart.substring(0, ipPart.lastIndexOf('.')) + '.1'
-      : ipPart;
+    const url = `subnets/search/${encodeURIComponent(ipPart)}/`;
+    console.log('[TEST 2] GET:', url);
+    const res = await get(url);
+    console.log('[TEST 2] Response Data:', JSON.stringify(res.data));
+  } catch (err) {
+    console.log('[TEST 2] Error Status:', err.response?.status, '| Message:', err.response?.data?.message || err.message);
+  }
 
-    const addrRes = await get(`addresses/search/${encodeURIComponent(sampleIp)}/`);
-    const addresses = addrRes.data || [];
-
-    if (addresses.length > 0 && addresses[0].subnetId) {
-      const targetSubnetId = addresses[0].subnetId;
-      const subnetData = await getSubnet(targetSubnetId);
-      if (subnetData) {
-        return [subnetData];
-      }
-    }
-  } catch (err) {}
-
-  // Strategy 3: Direct CIDR endpoint fallback
+  // Tes 3: Fetch Direct Subnet ID 1533 (Subnet ID yang valid dari pencarian IP kamu)
   try {
-    const response = await get(`subnets/cidr/${encodeURIComponent(cleanInput)}/`);
-    if (response.data && response.data.length > 0) {
-      return response.data.map(normalizeSubnet);
-    }
-  } catch (err) {}
+    console.log('[TEST 3] GET Direct Subnet ID 1533...');
+    const res = await getSubnet(1533);
+    console.log('[TEST 3] Response Data 1533:', JSON.stringify(res));
+  } catch (err) {
+    console.log('[TEST 3] Error 1533:', err.message);
+  }
 
+  console.log('===================================');
   return [];
 }
 
