@@ -188,6 +188,10 @@ export async function handleIpam({ reply, args }) {
   if (subcommand === 'free') {
     const cidr = args.slice(1).join(' ').trim(); // Ubah dari args[1] ke ini
 
+    console.log('[DEBUG COMMAND] Subcommand:', subcommand);
+    console.log('[DEBUG COMMAND] Raw args:', args);
+    console.log('[DEBUG COMMAND] Extracted CIDR:', `"${cidr}"`);
+
     if (!cidr) {
       await reply([
         '📡 *IPAM FREE*',
@@ -203,6 +207,8 @@ export async function handleIpam({ reply, args }) {
 
     try {
       const subnets = await searchSubnet(cidr);
+      console.log('[DEBUG RESULT] Subnets found count:', subnets.length);
+      console.log('[DEBUG RESULT] Data:', JSON.stringify(subnets, null, 2));
       if (!subnets.length) {
         await reply(`❌ Subnet *${cidr}* tidak ditemukan.`);
         return;
