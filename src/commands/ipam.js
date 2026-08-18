@@ -94,9 +94,11 @@ export async function handleIpam({ reply, args }) {
   // 5. !ipam usage <subnet>
   if (subcommand === 'usage') {
     if (!param) {
-      await reply('📡 *IPAM USAGE*\n\nFormat: `!ipam usage <subnet>`\nContoh: `!ipam usage 103.80.83.0/24`');
+      await reply('📡 *IPAM USAGE*\n\nFormat: `!ipam usage <subnet>`\nContoh: `!ipam usage 103.80.81.0/24`');
       return;
     }
+
+    await reply('⏳ _Mengambil statistik subnet..._');
 
     try {
       const subnets = await searchSubnet(param);
@@ -107,7 +109,21 @@ export async function handleIpam({ reply, args }) {
 
       const subnet = subnets[0];
       const usage = await getSubnetUsage(subnet.id);
-      await reply(formatSubnetUsage(subnet, usage));
+
+      // Bypass formatter eksternal, kita format langsung secara aman di sini
+      const msg = [
+        '📊 *IPAM USAGE*',
+        '',
+        `Subnet: *${subnet.subnet}/${subnet.mask}*`,
+        `Deskripsi: ${subnet.description || '-'}`,
+        '',
+        `Total IP: ${usage.maxhosts || 0}`,
+        `🔴 Terpakai: ${usage.Used || 0} (${usage.Used_percent || 0}%)`,
+        `🟡 Reserved: ${usage.Reserved || 0} (${usage.Reserved_percent || 0}%)`,
+        `🟢 Tersedia: ${usage.freehosts || 0} (${usage.freehosts_percent || 0}%)`
+      ].join('\n');
+
+      await reply(msg);
     } catch (error) {
       console.error('IPAM usage error:', error);
       await reply('❌ *IPAM*\n\nGagal mengambil usage subnet.');
@@ -118,9 +134,11 @@ export async function handleIpam({ reply, args }) {
   // 6. !ipam free <subnet>
   if (subcommand === 'free') {
     if (!param) {
-      await reply('📡 *IPAM FREE*\n\nFormat: `!ipam free <subnet>`\nContoh: `!ipam free 103.80.83.0/24`');
+      await reply('📡 *IPAM FREE*\n\nFormat: `!ipam free <subnet>`\nContoh: `!ipam free 103.80.81.0/24`');
       return;
     }
+
+    await reply('⏳ _Mencari IP kosong..._');
 
     try {
       const subnets = await searchSubnet(param);
@@ -130,15 +148,28 @@ export async function handleIpam({ reply, args }) {
       }
 
       const subnet = subnets[0];
-      const freeIpData = await getFirstFreeIp(subnet.id);
-      const freeIp = typeof freeIpData === 'object' ? freeIpData?.ip || freeIpData?.data : freeIpData;
+      let freeIp = 'Tidak diketahui';
+
+      try {
+        const freeIpData = await getFirstFreeIp(subnet.id);
+        freeIp = typeof freeIpData === 'object' ? freeIpData?.ip || freeIpData?.data : freeIpData;
+      } catch (apiError) {
+        // Tangkap error 409 jika Subnet adalah Folder/Master Subnet
+        if (apiError.response?.status === 409) {
+          await reply(
+            `❌ *Gagal mencari IP:* \n\nSubnet *${subnet.subnet}/${subnet.mask}* merupakan Master Subnet (mengandung subnet anak di dalamnya). Silakan cari IP kosong di level subnet anak.`
+          );
+          return;
+        }
+        throw apiError; // Lempar error lain ke blok catch utama
+      }
 
       await reply(
         [
-          '📡 *IPAM FREE*',
+          '✅ *IPAM FREE*',
           '',
           `Subnet: *${subnet.subnet}/${subnet.mask}*`,
-          `Description: ${subnet.description || '-'}`,
+          `Deskripsi: ${subnet.description || '-'}`,
           '',
           `First free IP: *${freeIp || 'Tidak ada IP tersedia'}*`,
         ].join('\n')
@@ -149,6 +180,22 @@ export async function handleIpam({ reply, args }) {
     }
     return;
   }
+
+  // Fallback bantuan jika subcommand salah
+  await reply(
+    [
+      '📡 *IPAM*',
+      '',
+      '*Command tersedia:*',
+      '',
+      '• `!ipam search <ip>`',
+      '• `!ipam host <hostname>`',
+      '• `!ipam subnet <subnet>`',
+      '• `!ipam usage <subnet>`',
+      '• `!ipam free <subnet>`',
+    ].join('\n')
+  );
+}
 
   // Fallback bantuan jika subcommand salah
   await reply(
