@@ -4,10 +4,10 @@ export async function handleHelp({ reply }) {
     '',
     '📱 !waid',
     '❓ !help',
-    '🏓 !ping',
     'ℹ️ !info',
-    '📊 !zbx (Zabbix API)',
-    '🌐 !gp (Globalping API)',
+    '📊 !zbx _(Zabbix API)_',
+    '🌐 !gp _(Globalping API)_',
+    '📡 !ipam _(phpIPAM API)_',
     '',
   ].join('\n');
 
