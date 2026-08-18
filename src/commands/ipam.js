@@ -208,7 +208,7 @@ export async function handleIpam({ reply, args }) {
     return;
   }
 
-  // !ipam free <cidr>
+// !ipam free <cidr>
   if (subcommand === 'free') {
     const cidr = args[1];
 
@@ -232,37 +232,34 @@ export async function handleIpam({ reply, args }) {
       const subnets = await searchSubnet(cidr);
 
       if (!subnets.length) {
-        await reply(
-          `❌ Subnet *${cidr}* tidak ditemukan.`
-        );
-
+        await reply(`❌ Subnet *${cidr}* tidak ditemukan.`);
         return;
       }
 
       const subnet = subnets[0];
+      const freeIpData = await getFirstFreeIp(subnet.id);
 
-      const freeIp = await getFirstFreeIp(subnet.id);
+      // Tangkap jika mereturn string IP atau object
+      const freeIp = typeof freeIpData === 'object' ? freeIpData?.ip || freeIpData?.data : freeIpData;
 
       await reply(
         [
           '📡 *IPAM FREE*',
           '',
           `Subnet: *${subnet.subnet}/${subnet.mask}*`,
+          `Description: ${subnet.description || '-'}`,
           '',
-          `First free IP: *${freeIp?.ip || freeIp || '-'}*`,
+          `First free IP: *${freeIp || 'Tidak ada IP tersedia'}*`,
         ].join('\n')
       );
     } catch (error) {
       console.error('IPAM free error:', error);
 
-      await reply(
-        '❌ *IPAM*\n\nGagal mencari IP yang tersedia.'
-      );
+      await reply('❌ *IPAM*\n\nGagal mencari IP yang tersedia.');
     }
 
     return;
   }
-
   await reply(
     [
       '📡 *IPAM*',
