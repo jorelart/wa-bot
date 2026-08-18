@@ -1,6 +1,6 @@
 import { get } from './client.js';
 
-// Helper merubah integer IP phpIPAM ke string IP (misal 1733303040 -> 103.80.83.0)
+// Convert Long IP / Integer dari phpIPAM ke String IP (misal 1733303040 -> 103.80.83.0)
 export function longToIp(long) {
   if (typeof long === 'string' && long.includes('.')) {
     return long;
@@ -16,7 +16,6 @@ export function longToIp(long) {
   ].join('.');
 }
 
-// Format ulang objek subnet dari phpIPAM API
 function normalizeSubnet(subnet) {
   if (!subnet) return subnet;
   return {
@@ -34,40 +33,41 @@ export async function searchSubnet(cidrInput) {
   const cleanInput = cidrInput.trim();
   const [ipPart, maskPart] = cleanInput.split('/');
 
-  console.log('=== [DEBUG PHPIPAM API SUBNET] ===');
-  console.log('Input CIDR:', cleanInput);
-  console.log('IP Part:', ipPart, '| Mask Part:', maskPart);
-
-  // Tes 1: Endpoint subnets/cidr/
+  // 1. Coba pencarian via endpoint cidr resmi phpIPAM (URL-encoded)
   try {
-    const url = `subnets/cidr/${encodeURIComponent(cleanInput)}/`;
-    console.log('[TEST 1] GET:', url);
-    const res = await get(url);
-    console.log('[TEST 1] Response Data:', JSON.stringify(res.data));
-  } catch (err) {
-    console.log('[TEST 1] Error Status:', err.response?.status, '| Message:', err.response?.data?.message || err.message);
-  }
+    const response = await get(`subnets/cidr/${encodeURIComponent(cleanInput)}/`);
+    if (response.data && response.data.length > 0) {
+      return response.data.map(normalizeSubnet);
+    }
+  } catch (err) {}
 
-  // Tes 2: Endpoint subnets/search/
+  // 2. Strategi Handal: Cari IP via endpoint addresses untuk menemukan subnet induk (masterSubnetId)
   try {
-    const url = `subnets/search/${encodeURIComponent(ipPart)}/`;
-    console.log('[TEST 2] GET:', url);
-    const res = await get(url);
-    console.log('[TEST 2] Response Data:', JSON.stringify(res.data));
-  } catch (err) {
-    console.log('[TEST 2] Error Status:', err.response?.status, '| Message:', err.response?.data?.message || err.message);
-  }
+    // Jika input 103.80.83.0, gunakan IP 103.80.83.1 atau IP aslinya
+    const sampleIp = ipPart.endsWith('.0') 
+      ? ipPart.substring(0, ipPart.lastIndexOf('.')) + '.1'
+      : ipPart;
 
-  // Tes 3: Fetch Direct Subnet ID 1533 (Subnet ID yang valid dari pencarian IP kamu)
-  try {
-    console.log('[TEST 3] GET Direct Subnet ID 1533...');
-    const res = await getSubnet(1533);
-    console.log('[TEST 3] Response Data 1533:', JSON.stringify(res));
-  } catch (err) {
-    console.log('[TEST 3] Error 1533:', err.message);
-  }
+    const addrRes = await get(`addresses/search/${encodeURIComponent(sampleIp)}/`);
+    const addresses = addrRes.data || [];
 
-  console.log('===================================');
+    if (addresses.length > 0 && addresses[0].subnetId) {
+      // Ambil subnet paling spesifik tempat IP berada
+      const leafSubnet = await getSubnet(addresses[0].subnetId);
+      
+      if (leafSubnet) {
+        // Jika user mencari dengan mask tertentu (misal /24), cari subnet induknya yang sesuai mask
+        if (maskPart && String(leafSubnet.mask) !== String(maskPart)) {
+          const hierarchy = await getSubnetHierarchy(leafSubnet.id);
+          const matchedSubnet = hierarchy.find((s) => String(s.mask) === String(maskPart));
+          if (matchedSubnet) return [matchedSubnet];
+        }
+        
+        return [leafSubnet];
+      }
+    }
+  } catch (err) {}
+
   return [];
 }
 
