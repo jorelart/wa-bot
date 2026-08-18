@@ -1,11 +1,12 @@
 import { createHttpClient } from '../http.js';
 import { config } from '../../config.js';
 
-// Buat URL lengkap yang menggabungkan URL API dan App ID
-const formattedBaseUrl = `${config.phpipam.url.replace(/\/$/, '')}/${config.phpipam.app}/`;
+// Buat URL lengkap yang menyertakan App ID
+// Hasil: https://monitor.jsn.net.id/phpipam/api/jorel-bot/
+const fullBaseUrl = `${config.phpipam.url.replace(/\/$/, '')}/${config.phpipam.app}/`;
 
 const phpipam = createHttpClient({
-  baseURL: formattedBaseUrl, // Hasil akhir: https://monitor.jsn.net.id/phpipam/api/jorel-bot/
+  baseURL: fullBaseUrl,
   headers: {
     token: config.phpipam.token,
   },
@@ -13,9 +14,12 @@ const phpipam = createHttpClient({
 
 async function request(method, url, options = {}) {
   try {
+    // Hapus slash di paling depan jika ada, agar tidak menimpa baseURL
+    const cleanUrl = url.replace(/^\//, '');
+
     const response = await phpipam.request({
       method,
-      url,
+      url: cleanUrl,
       ...options,
     });
 
@@ -27,7 +31,7 @@ async function request(method, url, options = {}) {
 
     return response.data;
   } catch (error) {
-    // Tangkap status 404 dari phpIPAM (ketika IP/Subnet tidak ditemukan di DB phpIPAM)
+    // Tangkap status 404 dari phpIPAM (ketika IP tidak ditemukan)
     if (error.response?.status === 404 || error.response?.data?.code === 404) {
       return { success: true, data: [] };
     }
