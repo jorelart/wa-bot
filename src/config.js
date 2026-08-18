@@ -32,4 +32,10 @@ export const config = {
     url: process.env.GLOBALPING_API_URL || 'https://api.globalping.io/v1',
     apiKey: process.env.GLOBALPING_API_KEY || '',
   },
+
+  phpipam: {
+    url: required('PHPIPAM_API_URL'),
+    app: required('PHPIPAM_API_APP'),
+    token: required('PHPIPAM_API_TOKEN'),
+  },
 };
