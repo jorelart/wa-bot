@@ -25,10 +25,9 @@ export async function handleIpam({ reply, args }) {
     await reply(
       [
         '📡 *IPAM*',
-        '',
         '*Command tersedia:*',
         '',
-        '• `!ipam search <ip>`',
+        '• `!ipam ip <ip>`',
         '• `!ipam host <hostname>`',
         '• `!ipam subnet <subnet>`',
         '• `!ipam usage <subnet>`',
@@ -38,10 +37,10 @@ export async function handleIpam({ reply, args }) {
     return;
   }
 
-  // 2. !ipam search <ip>
-  if (subcommand === 'search') {
+  // 2. !ipam ip <ip>
+  if (subcommand === 'ip') {
     if (!param) {
-      await reply('📡 *IPAM SEARCH*\n\nFormat: `!ipam search <ip>`\nContoh: `!ipam search 103.80.81.81`');
+      await reply('📡 *IPAM SEARCH*\n\nFormat: `!ipam ip <ip>`\nContoh: `!ipam ip 103.80.81.81`');
       return;
     }
 

@@ -127,19 +127,42 @@ export async function searchSubnet(cidrInput) {
   return [];
 }
 
-export async function getSubnetUsage(subnetId) {
-  const response = await get(`subnets/${subnetId}/usage/`);
-  return response.data;
-}
 
 export async function getSubnetAddresses(subnetId) {
   const response = await get(`subnets/${subnetId}/addresses/`);
   return response.data || [];
 }
 
+export async function getSubnetUsage(subnetId) {
+  console.log(`\n========== [IPAM DEBUG: USAGE] ==========`);
+  console.log(`Meminta data Usage untuk Subnet ID : ${subnetId}`);
+  try {
+    const response = await get(`subnets/${subnetId}/usage/`);
+    console.log(`[USAGE] HTTP Status : Berhasil`);
+    console.log(`[USAGE] Data Mentah :`, JSON.stringify(response.data));
+    console.log(`=========================================\n`);
+    return response.data;
+  } catch (err) {
+    console.log(`[USAGE] GAGAL       :`, err.response?.status, err.response?.data?.message || err.message);
+    console.log(`=========================================\n`);
+    throw err;
+  }
+}
+
 export async function getFirstFreeIp(subnetId) {
-  const response = await get(`subnets/${subnetId}/first_free/`);
-  return response.data;
+  console.log(`\n========== [IPAM DEBUG: FREE IP] ==========`);
+  console.log(`Meminta First Free IP untuk Subnet ID : ${subnetId}`);
+  try {
+    const response = await get(`subnets/${subnetId}/first_free/`);
+    console.log(`[FREE IP] HTTP Status : Berhasil`);
+    console.log(`[FREE IP] Data Mentah :`, JSON.stringify(response.data));
+    console.log(`===========================================\n`);
+    return response.data;
+  } catch (err) {
+    console.log(`[FREE IP] GAGAL       :`, err.response?.status, err.response?.data?.message || err.message);
+    console.log(`===========================================\n`);
+    throw err;
+  }
 }
 
 export async function getSubnetHierarchy(subnetId) {
