@@ -1,6 +1,6 @@
 import { get } from './client.js';
 
-// Konversi nilai integer IP dari phpIPAM ke String IP
+// Konversi nilai integer/Long IP dari phpIPAM ke format String IP
 export function longToIp(long) {
   if (typeof long === 'string' && long.includes('.')) {
     return long;
@@ -16,7 +16,7 @@ export function longToIp(long) {
   ].join('.');
 }
 
-// Format ulang objek subnet
+// Format ulang objek subnet dari phpIPAM API
 function normalizeSubnet(subnet) {
   if (!subnet) return subnet;
   return {
@@ -34,54 +34,40 @@ export async function searchSubnet(cidrInput) {
   const cleanInput = cidrInput.trim();
   const [ipPart, maskPart] = cleanInput.split('/');
 
-  console.log('[IPAM DEBUG] Input searchSubnet:', cleanInput);
-
-  // 1. Coba pencarian langsung ke endpoint cidr phpIPAM
+  // 1. Coba pencarian langsung ke endpoint CIDR phpIPAM
   try {
     const encodedCidr = encodeURIComponent(cleanInput);
     const response = await get(`subnets/cidr/${encodedCidr}/`);
-    console.log('[IPAM DEBUG] Respon Endpoint CIDR:', response?.data);
     if (response?.data && response.data.length > 0) {
       return response.data.map(normalizeSubnet);
     }
-  } catch (err) {
-    console.log('[IPAM DEBUG] Error Endpoint CIDR:', err.message);
-  }
+  } catch (err) {}
 
-  // 2. Jika 103.80.83.0, cari IP anggotanya (misal 103.80.83.59) untuk menemukan Subnet parent ID
+  // 2. Strategi Pelacakan Hierarki: Cari IP sampel di dalam subnet untuk menemukan Subnet Parent
   try {
     const searchIp = ipPart.endsWith('.0')
       ? ipPart.substring(0, ipPart.lastIndexOf('.')) + '.59'
       : ipPart;
 
-    console.log('[IPAM DEBUG] Mencari via IP sampel:', searchIp);
     const addrRes = await get(`addresses/search/${encodeURIComponent(searchIp)}/`);
     const addresses = addrRes?.data || [];
 
     if (addresses.length > 0 && addresses[0].subnetId) {
       const leafSubnetId = addresses[0].subnetId;
-      console.log('[IPAM DEBUG] Found Leaf Subnet ID:', leafSubnetId);
-
-      // Ambil hierarki subnet ke atas
       const hierarchy = await getSubnetHierarchy(leafSubnetId);
-      console.log('[IPAM DEBUG] Hierarchy count:', hierarchy.length);
 
       if (maskPart) {
         const matched = hierarchy.find((s) => String(s.mask) === String(maskPart));
         if (matched) {
-          console.log('[IPAM DEBUG] Matched parent subnet:', matched.id, matched.subnet, matched.mask);
           return [matched];
         }
       }
 
-      // Jika tidak match mask, kembalikan subnet induk teratas atau terdekat
       if (hierarchy.length > 0) {
         return [hierarchy[0]];
       }
     }
-  } catch (err) {
-    console.log('[IPAM DEBUG] Error Strategy IP:', err.message);
-  }
+  } catch (err) {}
 
   return [];
 }
