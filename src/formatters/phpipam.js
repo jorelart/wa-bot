@@ -52,7 +52,7 @@ export function formatSubnets(subnets) {
     const directLink = `${BASE_WEB_URL}/index.php?page=subnets&section=${subnet.sectionId}&subnetId=${subnet.id}`;
     
     lines.push(
-      `${index + 1}. *${subnet.subnet}/${subnet.mask}*`,
+      `Subnet: *${subnet.subnet}/${subnet.mask}*`,
       `ID: ${subnet.id}`,
       `Description: ${subnet.description || '-'}`,
       '', // Spasi sebelum link
