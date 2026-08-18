@@ -36,8 +36,38 @@ export async function handleZabbix({ reply, args }) {
   }
 
   // !zabbix
+  if (!subcommand) {
+    await reply(
+      [
+        '📊 *ZABBIX*',
+        '',
+        '*Command tersedia:*',
+        '',
+        '• `!zbx problems`',
+        '  Menampilkan 10 problem terbaru',
+        '',
+        '• `!zbx problem <eventid>`',
+        '  Menampilkan detail problem berdasarkan Event ID',
+        '',
+        '• `!zbx search <keyword>`',
+        '  Mencari problem berdasarkan keyword',
+        '',
+        '*Contoh:*',
+        '`!zbx problems`',
+        '`!zbx problem 1054973`',
+        '`!zbx search bgp`',
+        '`!zbx search starnus`',
+        '`!zbx search XGigabitEthernet`',
+        '',
+        '💡 Ketik `!help` untuk melihat semua command bot.',
+      ].join('\n')
+    );
+
+    return;
+  }
+
   // !zabbix problems
-  if (!subcommand || subcommand === 'problems') {
+  if (subcommand === 'problems') {
     await handleProblems(reply);
     return;
   }
@@ -52,10 +82,10 @@ export async function handleZabbix({ reply, args }) {
           '📊 *ZABBIX*',
           '',
           'Format:',
-          '`!zabbix problem <eventid>`',
+          '`!zbx problem <eventid>`',
           '',
           'Contoh:',
-          '`!zabbix problem 1054973`',
+          '`!zbx problem 1054973`',
         ].join('\n')
       );
 
@@ -72,10 +102,10 @@ export async function handleZabbix({ reply, args }) {
       '',
       '*Command tersedia:*',
       '',
-      '• `!zabbix`',
-      '• `!zabbix problems`',
-      '• `!zabbix search <keyword>`',
-      '• `!zabbix problem <eventid>`',
+      '• `!zbx`',
+      '• `!zbx problems`',
+      '• `!zbx search <keyword>`',
+      '• `!zbx problem <eventid>`',
     ].join('\n')
   );
 }
