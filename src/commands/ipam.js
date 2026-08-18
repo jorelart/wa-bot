@@ -82,9 +82,37 @@ export async function handleIpam({ reply, args }) {
       return;
     }
 
+    // Tambahkan status loading karena kita melakukan double-fetch (Subnet + Subnet Anak)
+    await reply('⏳ _Mencari data subnet dan strukturnya..._');
+
     try {
       const subnets = await searchSubnet(param);
-      await reply(formatSubnets(subnets));
+      
+      if (!subnets || subnets.length === 0) {
+        await reply(`📡 *IPAM SUBNET*\n\nSubnet *${param}* tidak ditemukan.`);
+        return;
+      }
+
+      // Format hasil utama dari subnet yang dicari
+      let responseMsg = formatSubnets(subnets);
+
+      // Ambil ID subnet pertama yang ditemukan untuk mengecek anak-anaknya
+      const parentSubnet = subnets[0];
+      
+      try {
+        const childSubnets = await getChildSubnets(parentSubnet.id);
+        
+        if (childSubnets && childSubnets.length > 0) {
+          const childSubnetsMsg = childSubnets.map(s => `• \`${s.subnet}/${s.mask}\` - ${s.description || 'Tanpa Deskripsi'}`).join('\n');
+          responseMsg += `\n\n*📑 Daftar Subnet Anak:*\n${childSubnetsMsg}`;
+        } else {
+          responseMsg += `\n\n_Subnet ini tidak memiliki subnet anak._`;
+        }
+      } catch (childErr) {
+        console.error('Gagal mengambil daftar subnet anak:', childErr.message);
+      }
+
+      await reply(responseMsg);
     } catch (error) {
       console.error('IPAM subnet search error:', error);
       await reply('❌ *IPAM*\n\nGagal mencari subnet.');
