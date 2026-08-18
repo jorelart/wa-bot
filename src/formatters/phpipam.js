@@ -8,7 +8,7 @@ export function formatAddresses(addresses) {
     return '📡 *IPAM*\n\nTidak ditemukan IP address.';
   }
 
-  const lines = ['IP Found!', ''];
+  const lines = ['✅ *IP Found!*', ''];
 
   addresses.forEach((item) => {
     lines.push(`Hostname : ${item.hostname || '-'} (${item.ip || '-'})`);
@@ -26,7 +26,7 @@ export function formatAddresses(addresses) {
       const lowestSubnet = item.subnetsHierarchy[item.subnetsHierarchy.length - 1];
       const directLink = `${BASE_WEB_URL}/index.php?page=subnets&section=${lowestSubnet.sectionId}&subnetId=${lowestSubnet.id}`;
       
-      lines.push(`Link : ${directLink}`);
+      lines.push(`🔗 ${directLink}`);
     } else {
       lines.push(`Subnet : -`);
     }
@@ -50,7 +50,7 @@ export function formatSubnets(subnets) {
       `${index + 1}. *${subnet.subnet}/${subnet.mask}*`,
       `ID: ${subnet.id}`,
       `Name: ${subnet.description || '-'}`,
-      `Link: ${directLink}`,
+      `🔗 ${directLink}`,
       ''
     );
   });
@@ -81,6 +81,7 @@ export function formatSubnetUsage(subnet, usage) {
     `Free: ${free}`,
     `Usage: *${percentage}%*`,
     '',
-    `Link: ${directLink}`,
+    '',
+    `🔗 ${directLink}`,
   ].join('\n');
 }
