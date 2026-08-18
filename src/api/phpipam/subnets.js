@@ -1,6 +1,6 @@
 import { get } from './client.js';
 
-// Convert Long IP / Decimal dari phpIPAM ke String IP (misal 1733303040 -> 103.80.83.0)
+// Helper merubah integer IP phpIPAM ke string IP (misal 1733303040 -> 103.80.83.0)
 export function longToIp(long) {
   if (typeof long === 'string' && long.includes('.')) {
     return long;
@@ -16,7 +16,7 @@ export function longToIp(long) {
   ].join('.');
 }
 
-// Transformasi properti .subnet agar selalu berformat IP string
+// Format ulang objek subnet dari phpIPAM API
 function normalizeSubnet(subnet) {
   if (!subnet) return subnet;
   return {
@@ -34,15 +34,7 @@ export async function searchSubnet(cidrInput) {
   const cleanInput = cidrInput.trim();
   const [ipPart, maskPart] = cleanInput.split('/');
 
-  // 1. Coba pencarian via endpoint cidr resmi phpIPAM (URL-encoded)
-  try {
-    const response = await get(`subnets/cidr/${encodeURIComponent(cleanInput)}/`);
-    if (response.data && response.data.length > 0) {
-      return response.data.map(normalizeSubnet);
-    }
-  } catch (err) {}
-
-  // 2. Coba pencarian via endpoint search subnets
+  // Strategy 1: Cari via endpoint subnets/search (menggunakan IP murni tanpa /mask)
   try {
     const response = await get(`subnets/search/${encodeURIComponent(ipPart)}/`);
     let results = response.data || [];
@@ -50,6 +42,7 @@ export async function searchSubnet(cidrInput) {
     if (Array.isArray(results) && results.length > 0) {
       results = results.map(normalizeSubnet);
 
+      // Jika user menyertakan subnet mask (misal /24), filter hasil yang cocok
       if (maskPart) {
         const filtered = results.filter(
           (s) => String(s.mask) === String(maskPart)
@@ -61,14 +54,14 @@ export async function searchSubnet(cidrInput) {
     }
   } catch (err) {}
 
-  // 3. ULTIMATE FALLBACK: Cari via IP address untuk menemukan subnetId secara presisi
+  // Strategy 2: Cari via endpoint custom/pencarian IP terdekat jika input berakhiran .0
   try {
-    // Jika input 103.80.83.0, buat dummy IP 103.80.83.1 atau gunakan IP asal
-    const testIp = ipPart.endsWith('.0') 
-      ? ipPart.replace(/\.0$/, '.1') 
+    // Jika input 103.80.83.0, tes cari IP 103.80.83.1 di phpIPAM untuk mengambil subnetId-nya
+    const sampleIp = ipPart.endsWith('.0') 
+      ? ipPart.substring(0, ipPart.lastIndexOf('.')) + '.1'
       : ipPart;
 
-    const addrRes = await get(`addresses/search/${encodeURIComponent(testIp)}/`);
+    const addrRes = await get(`addresses/search/${encodeURIComponent(sampleIp)}/`);
     const addresses = addrRes.data || [];
 
     if (addresses.length > 0 && addresses[0].subnetId) {
@@ -77,6 +70,14 @@ export async function searchSubnet(cidrInput) {
       if (subnetData) {
         return [subnetData];
       }
+    }
+  } catch (err) {}
+
+  // Strategy 3: Direct CIDR endpoint fallback
+  try {
+    const response = await get(`subnets/cidr/${encodeURIComponent(cleanInput)}/`);
+    if (response.data && response.data.length > 0) {
+      return response.data.map(normalizeSubnet);
     }
   } catch (err) {}
 
