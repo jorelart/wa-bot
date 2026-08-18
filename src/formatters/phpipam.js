@@ -26,6 +26,7 @@ export function formatAddresses(addresses) {
       const lowestSubnet = item.subnetsHierarchy[item.subnetsHierarchy.length - 1];
       const directLink = `${BASE_WEB_URL}/index.php?page=subnets&section=${lowestSubnet.sectionId}&subnetId=${lowestSubnet.id}`;
       
+      lines.push(''); // Jarak spasi sebelum link
       lines.push(`🔗 ${directLink}`);
     } else {
       lines.push(`Subnet : -`);
@@ -50,6 +51,7 @@ export function formatSubnets(subnets) {
       `${index + 1}. *${subnet.subnet}/${subnet.mask}*`,
       `ID: ${subnet.id}`,
       `Name: ${subnet.description || '-'}`,
+      '', // Jarak spasi sebelum link
       `🔗 ${directLink}`,
       ''
     );
@@ -80,8 +82,7 @@ export function formatSubnetUsage(subnet, usage) {
     `Used: ${used}`,
     `Free: ${free}`,
     `Usage: *${percentage}%*`,
-    '',
-    '',
+    '', // Jarak spasi sebelum link
     `🔗 ${directLink}`,
   ].join('\n');
 }
