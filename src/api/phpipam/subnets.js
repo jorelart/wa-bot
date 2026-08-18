@@ -187,3 +187,20 @@ export async function getSubnetHierarchy(subnetId) {
 
   return hierarchy;
 }
+
+export async function getChildSubnets(subnetId) {
+  try {
+    const response = await get(`subnets/${subnetId}/slaves/`);
+    let results = response.data || [];
+    
+    // Normalisasi IP jika diperlukan
+    if (Array.isArray(results)) {
+      results = results.map(normalizeSubnet);
+    }
+    return results;
+  } catch (err) {
+    // Jika tidak ada subnet anak (404), kembalikan array kosong
+    if (err.response?.status === 404) return [];
+    throw err;
+  }
+}

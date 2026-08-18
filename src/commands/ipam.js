@@ -7,6 +7,7 @@ import {
   searchSubnet,
   getSubnetUsage,
   getFirstFreeIp,
+  getChildSubnets,
 } from '../api/phpipam/subnets.js';
 
 import {
@@ -156,8 +157,20 @@ export async function handleIpam({ reply, args }) {
       } catch (apiError) {
         // Tangkap error 409 jika Subnet adalah Folder/Master Subnet
         if (apiError.response?.status === 409) {
+          let childSubnetsMsg = '';
+          
+          try {
+            // Tarik daftar subnet anak
+            const childSubnets = await getChildSubnets(subnet.id);
+            if (childSubnets && childSubnets.length > 0) {
+              childSubnetsMsg = '\n\n*📑 Daftar Subnet Anak:*\n' + childSubnets.map(s => `• \`${s.subnet}/${s.mask}\` - ${s.description || 'Tanpa Deskripsi'}`).join('\n');
+            }
+          } catch (childErr) {
+            console.error('Gagal mengambil daftar subnet anak:', childErr.message);
+          }
+
           await reply(
-            `❌ *Gagal mencari IP:* \n\nSubnet *${subnet.subnet}/${subnet.mask}* merupakan Master Subnet (mengandung subnet anak di dalamnya). Silakan cari IP kosong di level subnet anak.`
+            `❌ *Gagal mencari IP:* \n\nSubnet *${subnet.subnet}/${subnet.mask}* merupakan Master Subnet (mengandung subnet anak di dalamnya). Silakan cari IP kosong di level subnet anak.${childSubnetsMsg}`
           );
           return;
         }
@@ -180,7 +193,6 @@ export async function handleIpam({ reply, args }) {
     }
     return;
   }
-
   // Fallback bantuan jika subcommand salah
   await reply(
     [
