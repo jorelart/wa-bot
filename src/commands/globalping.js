@@ -111,9 +111,9 @@ export async function handleGlobalping({ reply, args }) {
     return;
   }
 
-  console.log(
-    `Globalping ${subcommand}: target=${target}, location=${location}, probes=${probeCount}`
-  );
+  // console.log(
+  //   `Globalping ${subcommand}: target=${target}, location=${location}, probes=${probeCount}`
+  // );
 
   if (subcommand === 'ping') {
     await handlePing(
