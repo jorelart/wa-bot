@@ -104,12 +104,12 @@ export async function handleIpam({ reply, args }) {
         
         if (childSubnets && childSubnets.length > 0) {
           const childSubnetsMsg = childSubnets.map(s => `• \`${s.subnet}/${s.mask}\` - ${s.description || 'Tanpa Deskripsi'}`).join('\n');
-          responseMsg += `\n\n*📑 Daftar Subnet Anak:*\n${childSubnetsMsg}`;
+          responseMsg += `\n\n*Daftar Child Subnet:*\n${childSubnetsMsg}`;
         } else {
-          responseMsg += `\n\n_Subnet ini tidak memiliki subnet anak._`;
+          responseMsg += `\n\n_Subnet ini tidak memiliki child subnet._`;
         }
       } catch (childErr) {
-        console.error('Gagal mengambil daftar subnet anak:', childErr.message);
+        console.error('Gagal mengambil daftar child subnet:', childErr.message);
       }
 
       await reply(responseMsg);
@@ -191,14 +191,14 @@ export async function handleIpam({ reply, args }) {
             // Tarik daftar subnet anak
             const childSubnets = await getChildSubnets(subnet.id);
             if (childSubnets && childSubnets.length > 0) {
-              childSubnetsMsg = '\n\n*📑 Daftar Subnet Anak:*\n' + childSubnets.map(s => `• \`${s.subnet}/${s.mask}\` - ${s.description || 'Tanpa Deskripsi'}`).join('\n');
+              childSubnetsMsg = '\n\n*Daftar Child Subnet:*\n' + childSubnets.map(s => `• \`${s.subnet}/${s.mask}\` - ${s.description || 'Tanpa Deskripsi'}`).join('\n');
             }
           } catch (childErr) {
-            console.error('Gagal mengambil daftar subnet anak:', childErr.message);
+            console.error('Gagal mengambil daftar child subnet:', childErr.message);
           }
 
           await reply(
-            `❌ *Gagal mencari IP:* \n\nSubnet *${subnet.subnet}/${subnet.mask}* merupakan Master Subnet (mengandung subnet anak di dalamnya). Silakan cari IP kosong di level subnet anak.${childSubnetsMsg}`
+            `❌ *Gagal mencari IP:* \n\nSubnet *${subnet.subnet}/${subnet.mask}* merupakan Master Subnet (mengandung child subnet di dalamnya). Silakan cari IP kosong di level child subnet.${childSubnetsMsg}`
           );
           return;
         }
