@@ -38,4 +38,9 @@ export const config = {
     app: required('PHPIPAM_API_APP'),
     token: required('PHPIPAM_API_TOKEN'),
   },
+
+  librenms: {
+    url: required('LIBRENMS_API_URL'),
+    token: required('LIBRENMS_API_TOKEN'),
+  },
 };

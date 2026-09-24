@@ -14,6 +14,7 @@ export async function handleHelp({ reply }) {
     '- !zbx `Zabbix API`',
     '- !gp `Globalping API`',
     '- !ipam `phpIPAM API`',
+    '- !libre `LibreNMS API`',
     '',
   ].join('\n');
 
