@@ -37,15 +37,17 @@ export function formatBgpSessions(sessions, keyword) {
     const localAs = session.bgpLocalAs || '-';
     const remoteAs = session.bgpPeerRemoteAs || '-';
     const peerIp = session.bgpPeerIdentifier || '-';
+    const asText = session.astext ? ` - ${session.astext}` : '';
     // try to get hostname if available or fallback to device id
     const deviceName = session.device_hostname || `Device ID: ${session.device_id || '-'}`;
+    const deviceIp = session.device_ip ? ` [${session.device_ip}]` : '';
     
     // Add extra details if available (like uptime/downtime)
     const uptimeStr = session.bgpPeerFsmEstablishedTime ? ` | Uptime: ${session.bgpPeerFsmEstablishedTime}s` : '';
 
     lines.push(
-      `${index + 1}. ${stateIcon} *${peerIp}* (AS: ${remoteAs})`,
-      `Device: ${deviceName}`,
+      `${index + 1}. ${stateIcon} *${peerIp}* (AS: ${remoteAs})${asText}`,
+      `Device: ${deviceName}${deviceIp}`,
       `Local AS: ${localAs}`,
       `State: ${stateStr}${uptimeStr}`,
       ''
